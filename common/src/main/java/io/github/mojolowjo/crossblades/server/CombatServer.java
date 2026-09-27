@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -272,7 +273,8 @@ public final class CombatServer {
             return false;
         }
         ItemStack weapon = attacker.getMainHandItem();
-        DamageSource source = level.damageSources().source(Crossblades.SWING_DAMAGE, attacker);
+        DamageSource source = new DamageSource(
+                level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(Crossblades.SWING_DAMAGE), attacker);
         float base = (float) attacker.getAttributeValue(Attributes.ATTACK_DAMAGE);
         float enchanted = EnchantmentHelper.modifyDamage(level, weapon, target, source, base);
         float damage = (float) (enchanted * attack.damageMultiplier * share);
