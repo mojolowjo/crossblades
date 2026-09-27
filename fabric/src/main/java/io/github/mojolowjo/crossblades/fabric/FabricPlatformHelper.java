@@ -2,7 +2,6 @@ package io.github.mojolowjo.crossblades.fabric;
 
 import io.github.mojolowjo.crossblades.platform.IPlatformHelper;
 import java.nio.file.Path;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
@@ -23,9 +22,12 @@ public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public void sendToServer(CustomPacketPayload payload) {
-        if (ClientPlayNetworking.canSend(payload.type())) {
-            ClientPlayNetworking.send(payload);
-        }
+        FabricClientAccess.sendToServer(payload);
+    }
+
+    @Override
+    public boolean canSendToServer(CustomPacketPayload.Type<?> type) {
+        return FabricClientAccess.canSendToServer(type);
     }
 
     @Override

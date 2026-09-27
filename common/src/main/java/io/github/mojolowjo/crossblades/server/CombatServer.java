@@ -165,7 +165,7 @@ public final class CombatServer {
             }
             if (ripostes.contains(player.getUUID())) {
                 fighter.riposte(now, settings);
-            } else if (interrupted.contains(player.getUUID()) && settings.hitsInterruptWindups) {
+            } else if (interrupted.contains(player.getUUID()) && settings.hitsInterruptWindups && fighter.isWindingUp()) {
                 fighter.flinch(now, settings);
                 Services.PLATFORM.sendToPlayer(player, new FeedbackPayload(FeedbackPayload.YOU_WERE_INTERRUPTED, (byte) 0));
             }

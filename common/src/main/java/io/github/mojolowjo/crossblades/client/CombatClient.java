@@ -39,6 +39,7 @@ public final class CombatClient {
     /** Our own phase as far as the client knows (predicted, then corrected by the server). */
     private static FighterState.Phase localPhase = FighterState.Phase.IDLE;
     private static long localPhaseEnd;
+    private static int localRecoveryTicks;
     private static long predictedAt = Long.MIN_VALUE;
     private static AttackDir predictedDir;
 
@@ -64,7 +65,8 @@ public final class CombatClient {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         return stanceOn && player != null && player.isAlive() && !player.isSpectator()
-                && Crossblades.isWeapon(player.getMainHandItem());
+                && Crossblades.isWeapon(player.getMainHandItem())
+                && Services.PLATFORM.canSendToServer(AttackPayload.TYPE);
     }
 
     public static AttackDir loadedAttack() {
@@ -114,7 +116,13 @@ public final class CombatClient {
         }
 
         if (localPhase != FighterState.Phase.IDLE && clientTicks >= localPhaseEnd) {
-            localPhase = FighterState.Phase.IDLE;
+            if (localPhase == FighterState.Phase.WINDUP) {
+                // Predicted: the server's "strike" message will correct this if it differs.
+                localPhase = FighterState.Phase.RECOVERY;
+                localPhaseEnd = clientTicks + localRecoveryTicks;
+            } else {
+                localPhase = FighterState.Phase.IDLE;
+            }
         }
 
         boolean active = isActive();
@@ -155,7 +163,8 @@ public final class CombatClient {
             CombatSettings.Attack attack = Crossblades.settings().attack(loadedAttack);
             int windup = CombatSettings.ticks(attack.windupMs);
             localPhase = FighterState.Phase.WINDUP;
-            localPhaseEnd = clientTicks + windup + CombatSettings.ticks(attack.recoveryMs);
+            localPhaseEnd = clientTicks + windup;
+            localRecoveryTicks = CombatSettings.ticks(attack.recoveryMs);
             predictedAt = clientTicks;
             predictedDir = loadedAttack;
             CombatAnimations.play(player, FighterState.Shown.WINDUP, loadedAttack.id(), windup);
@@ -191,7 +200,7 @@ public final class CombatClient {
                     && predictedDir != null && predictedDir.id() == payload.dir()
                     && clientTicks - predictedAt <= 20;
             predictedDir = null;
-            syncLocalPhase(shown, ticks);
+            syncLocalPhase(shown, AttackDir.byId(payload.dir()), ticks);
             if (alreadyShowing) {
                 return;
             }
@@ -199,11 +208,12 @@ public final class CombatClient {
         CombatAnimations.play(player, shown, payload.dir(), ticks);
     }
 
-    private static void syncLocalPhase(FighterState.Shown shown, int ticks) {
+    private static void syncLocalPhase(FighterState.Shown shown, AttackDir dir, int ticks) {
         switch (shown) {
             case WINDUP -> {
                 localPhase = FighterState.Phase.WINDUP;
                 localPhaseEnd = clientTicks + ticks;
+                localRecoveryTicks = CombatSettings.ticks(Crossblades.settings().attack(dir).recoveryMs);
             }
             case STRIKE, FLINCH -> {
                 localPhase = FighterState.Phase.RECOVERY;

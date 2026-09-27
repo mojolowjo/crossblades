@@ -14,6 +14,9 @@ public interface IPlatformHelper {
     /** Client only. */
     void sendToServer(CustomPacketPayload payload);
 
+    /** Client only: whether the server we're connected to understands this payload (has the mod). */
+    boolean canSendToServer(CustomPacketPayload.Type<?> type);
+
     void sendToPlayer(ServerPlayer player, CustomPacketPayload payload);
 
     /** Sends to everyone who can see {@code entity}, and to the entity itself if it is a player. */

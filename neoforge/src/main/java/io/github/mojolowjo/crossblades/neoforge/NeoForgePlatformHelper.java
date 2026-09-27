@@ -6,7 +6,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public class NeoForgePlatformHelper implements IPlatformHelper {
@@ -22,7 +21,12 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
 
     @Override
     public void sendToServer(CustomPacketPayload payload) {
-        ClientPacketDistributor.sendToServer(payload);
+        NeoForgeClientAccess.sendToServer(payload);
+    }
+
+    @Override
+    public boolean canSendToServer(CustomPacketPayload.Type<?> type) {
+        return NeoForgeClientAccess.canSendToServer(type);
     }
 
     @Override
