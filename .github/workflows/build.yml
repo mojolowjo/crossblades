@@ -61,3 +61,57 @@ jobs:
           files: |
             fabric/build/libs/crossblades-fabric-*[0-9].jar
             neoforge/build/libs/crossblades-neoforge-*[0-9].jar
+
+  # Launches the real game (headless) with the built mod and Player Animation Library, joins a
+  # singleplayer world and quits. Catches crashes on startup and world join.
+  runtime-test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        loader: [fabric, neoforge]
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: crossblades-jars
+          path: jars
+
+      - name: Stage mods
+        shell: bash
+        run: |
+          mkdir -p run/mods
+          cp jars/${{ matrix.loader }}/build/libs/crossblades-${{ matrix.loader }}-*[0-9].jar run/mods/
+          url=$(curl -fsSL 'https://api.modrinth.com/v2/project/player-animation-library/version?game_versions=%5B%2226.1.2%22%5D' \
+            | jq -r '[.[] | select(.loaders | index("${{ matrix.loader }}"))][0].files[] | select(.primary) | .url')
+          echo "Player Animation Library: $url"
+          curl -fsSL -o run/mods/player-animation-library.jar "$url"
+          ls -l run/mods
+
+      - name: Run the game
+        uses: headlesshq/mc-runtime-test@4.5.1
+        with:
+          mc: 26.1.2
+          modloader: ${{ matrix.loader }}
+          regex: .*${{ matrix.loader }}.*
+          mc-runtime-test: ${{ matrix.loader }}
+          java: 25
+          fabric-api: ${{ matrix.loader == 'fabric' && '0.155.3' || 'none' }}
+
+      - name: Save game log
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p /tmp/ci-logs && cd /tmp/ci-logs
+          git init -q -b ci-logs-${{ matrix.loader }}
+          cp "$GITHUB_WORKSPACE/run/logs/latest.log" game.log 2>/dev/null || echo "no game log" > game.log
+          ls "$GITHUB_WORKSPACE/run/crash-reports" >/dev/null 2>&1 && cp "$GITHUB_WORKSPACE"/run/crash-reports/* . || true
+          echo "${{ github.sha }} ${{ job.status }}" > status.txt
+          git add .
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Game log for ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-logs-${{ matrix.loader }}
