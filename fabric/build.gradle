@@ -6,7 +6,11 @@ dependencies {
     minecraft("com.mojang:minecraft:${minecraft_version}")
     implementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
     implementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
-    implementation("com.zigythebird.playeranim:PlayerAnimationLibFabric:${pal_version}")
+    implementation("com.zigythebird.playeranim:PlayerAnimationLibFabric:${pal_version}") { transitive = false }
+    // Player Animation Library's own dependencies are left out on purpose: Minecraft already
+    // ships them, and the library's newer version numbers clash with Minecraft's pinned ones.
+    compileOnly("com.zigythebird.playeranim:PlayerAnimationLibCore:${pal_version}") { transitive = false }
+    compileOnly("com.zigythebird:mochafloats:${pal_molang_version}") { transitive = false }
 }
 
 loom {

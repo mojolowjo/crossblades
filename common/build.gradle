@@ -14,7 +14,11 @@ neoForge {
 
 dependencies {
     // Animations. Only used by client code; each loader adds its own build of the library.
-    compileOnly("com.zigythebird.playeranim:PlayerAnimationLibCommon:${pal_version}")
+    compileOnly("com.zigythebird.playeranim:PlayerAnimationLibCommon:${pal_version}") { transitive = false }
+    // Player Animation Library's own dependencies are left out on purpose: Minecraft already
+    // ships them, and the library's newer version numbers clash with Minecraft's pinned ones.
+    compileOnly("com.zigythebird.playeranim:PlayerAnimationLibCore:${pal_version}") { transitive = false }
+    compileOnly("com.zigythebird:mochafloats:${pal_molang_version}") { transitive = false }
 }
 
 configurations {
