@@ -1,5 +1,7 @@
 package io.github.mojolowjo.crossblades.neoforge;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -14,6 +16,10 @@ final class NeoForgeClientAccess {
         if (Minecraft.getInstance().getConnection() != null) {
             ClientPacketDistributor.sendToServer(payload);
         }
+    }
+
+    static InputConstants.Key boundKey(KeyMapping mapping) {
+        return mapping.getKey();
     }
 
     static boolean canSendToServer(CustomPacketPayload.Type<?> type) {

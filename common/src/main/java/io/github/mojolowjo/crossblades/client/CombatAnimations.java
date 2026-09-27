@@ -18,6 +18,8 @@ import io.github.mojolowjo.crossblades.Crossblades;
 import io.github.mojolowjo.crossblades.core.AttackDir;
 import io.github.mojolowjo.crossblades.core.FighterState;
 import io.github.mojolowjo.crossblades.core.Guard;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 
@@ -86,6 +88,25 @@ public final class CombatAnimations {
         controller.replaceAnimationWithFade(
                 AbstractFadeModifier.standardFadeIn(FADE_TICKS, EasingType.EASE_IN_OUT_SINE),
                 RawAnimation.begin().then(animation, loop));
+    }
+
+    /** Whether a combat animation is currently playing on {@code player}. */
+    public static boolean isPlaying(Player player) {
+        PlayerAnimationController controller = controller(player);
+        return controller != null && controller.isActive();
+    }
+
+    /** Animation files that failed to load (should be empty). */
+    public static List<String> missingAnimations() {
+        List<String> missing = new ArrayList<>();
+        for (String name : List.of("windup_overhead", "windup_left", "windup_right", "windup_poke",
+                "strike_overhead", "strike_left", "strike_right", "strike_poke",
+                "guard_up", "guard_left", "guard_right", "stagger", "rest")) {
+            if (!PlayerAnimResources.hasAnimation(Crossblades.id(name))) {
+                missing.add(name);
+            }
+        }
+        return missing;
     }
 
     private static PlayerAnimationController controller(Player player) {

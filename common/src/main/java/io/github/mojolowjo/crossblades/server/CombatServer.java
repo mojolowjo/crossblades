@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -46,7 +47,23 @@ import net.minecraft.world.phys.Vec3;
  * All methods run on the server thread.
  */
 public final class CombatServer {
-    private static final Map<UUID, FighterState> FIGHTERS = new HashMap<>();
+    /** A player and their combat state. The player reference is refreshed as players respawn. */
+    private static final class Fighter {
+        ServerPlayer player;
+        final FighterState state = new FighterState();
+
+        Fighter(ServerPlayer player) {
+            this.player = player;
+        }
+    }
+
+    private static final Map<UUID, Fighter> FIGHTERS = new HashMap<>();
+
+    /** The most recent clash, for the in-game self-test ({@code -Dcrossblades.selftest=true}). */
+    public record LastClash(CombatRules.Kind kind, double damageTaken, float damageDealt, long serial) {
+    }
+
+    private static volatile LastClash lastClash = new LastClash(CombatRules.Kind.HIT, 1, 0, 0);
 
     private CombatServer() {
     }
@@ -56,7 +73,19 @@ public final class CombatServer {
     }
 
     private static FighterState fighter(ServerPlayer player) {
-        return FIGHTERS.computeIfAbsent(player.getUUID(), id -> new FighterState());
+        Fighter fighter = FIGHTERS.computeIfAbsent(player.getUUID(), id -> new Fighter(player));
+        fighter.player = player;
+        return fighter.state;
+    }
+
+    /** The combat state of a player, or {@code null} if they haven't fought yet. */
+    public static FighterState stateOf(UUID player) {
+        Fighter fighter = FIGHTERS.get(player);
+        return fighter == null ? null : fighter.state;
+    }
+
+    public static LastClash lastClash() {
+        return lastClash;
     }
 
     /**
@@ -100,7 +129,7 @@ public final class CombatServer {
     /** A player started watching {@code target}: show them what it is doing right now. */
     public static void onStartTracking(Entity target, ServerPlayer watcher) {
         if (target instanceof ServerPlayer targetPlayer) {
-            FighterState fighter = FIGHTERS.get(targetPlayer.getUUID());
+            FighterState fighter = stateOf(targetPlayer.getUUID());
             if (fighter != null && fighter.currentlyShown() != FighterState.Shown.IDLE) {
                 sendCurrentState(targetPlayer, fighter, watcher);
             }
@@ -126,51 +155,48 @@ public final class CombatServer {
         long now = server.getTickCount();
         CombatSettings settings = settings();
 
-        List<ServerPlayer> strikers = new ArrayList<>();
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            FighterState fighter = FIGHTERS.get(player.getUUID());
-            if (fighter == null) {
-                continue;
+        List<Fighter> fighters = new ArrayList<>(FIGHTERS.values());
+        List<Fighter> strikers = new ArrayList<>();
+        for (Fighter fighter : fighters) {
+            ServerPlayer live = server.getPlayerList().getPlayer(fighter.player.getUUID());
+            if (live != null) {
+                fighter.player = live;
             }
-            fighter.tick(now, canFight(player), settings);
-            if (fighter.strikeDue(now)) {
-                strikers.add(player);
+            fighter.state.tick(now, canFight(fighter.player), settings);
+            if (fighter.state.strikeDue(now)) {
+                strikers.add(fighter);
             }
         }
 
         // Resolve every swing that lands this tick before anyone's state changes, so two players
         // hitting each other on the same tick both land (a trade) no matter who is processed first.
         Set<UUID> strikerIds = new HashSet<>();
-        for (ServerPlayer striker : strikers) {
-            strikerIds.add(striker.getUUID());
+        for (Fighter striker : strikers) {
+            strikerIds.add(striker.player.getUUID());
         }
         Set<UUID> parried = new HashSet<>();
         Set<UUID> ripostes = new HashSet<>();
         Set<UUID> interrupted = new HashSet<>();
-        for (ServerPlayer striker : strikers) {
-            strike(striker, FIGHTERS.get(striker.getUUID()), now, settings, parried, ripostes, interrupted, strikerIds);
+        for (Fighter striker : strikers) {
+            strike(striker.player, striker.state, now, settings, parried, ripostes, interrupted, strikerIds);
         }
 
-        for (ServerPlayer striker : strikers) {
-            FighterState fighter = FIGHTERS.get(striker.getUUID());
-            if (parried.contains(striker.getUUID())) {
-                fighter.stagger(now, settings);
+        for (Fighter striker : strikers) {
+            if (parried.contains(striker.player.getUUID())) {
+                striker.state.stagger(now, settings);
             } else {
-                fighter.finishStrike(now, settings);
+                striker.state.finishStrike(now, settings);
             }
         }
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            FighterState fighter = FIGHTERS.get(player.getUUID());
-            if (fighter == null) {
-                continue;
+        for (Fighter fighter : fighters) {
+            UUID id = fighter.player.getUUID();
+            if (ripostes.contains(id)) {
+                fighter.state.riposte(now, settings);
+            } else if (interrupted.contains(id) && settings.hitsInterruptWindups && fighter.state.isWindingUp()) {
+                fighter.state.flinch(now, settings);
+                sendTo(fighter.player, new FeedbackPayload(FeedbackPayload.YOU_WERE_INTERRUPTED, (byte) 0));
             }
-            if (ripostes.contains(player.getUUID())) {
-                fighter.riposte(now, settings);
-            } else if (interrupted.contains(player.getUUID()) && settings.hitsInterruptWindups && fighter.isWindingUp()) {
-                fighter.flinch(now, settings);
-                Services.PLATFORM.sendToPlayer(player, new FeedbackPayload(FeedbackPayload.YOU_WERE_INTERRUPTED, (byte) 0));
-            }
-            broadcastIfChanged(player, fighter);
+            broadcastIfChanged(fighter.player, fighter.state);
         }
     }
 
@@ -210,7 +236,7 @@ public final class CombatServer {
             FighterState defenderState = null;
             boolean facing = false;
             if (target instanceof ServerPlayer defender) {
-                defenderState = FIGHTERS.get(defender.getUUID());
+                defenderState = stateOf(defender.getUUID());
                 facing = HitScan.inFrontCone(defender.getX(), defender.getZ(), defender.getYRot(),
                         attacker.getX(), attacker.getZ(), settings.blockConeDegrees);
             }
@@ -228,6 +254,7 @@ public final class CombatServer {
                                      CombatSettings.Attack attack, CombatRules.Outcome outcome,
                                      Set<UUID> parried, Set<UUID> ripostes, Set<UUID> interrupted, Set<UUID> strikerIds) {
         ServerPlayer defender = target instanceof ServerPlayer player ? player : null;
+        float dealt = 0;
         switch (outcome.kind()) {
             case PARRY -> {
                 parried.add(attacker.getUUID());
@@ -246,13 +273,13 @@ public final class CombatServer {
             case BLOCK -> {
                 int percent = (int) Math.round(outcome.damageTaken() * 100);
                 level.playSound(null, at.x, at.y, at.z, SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.8F, 1.1F);
-                dealDamage(level, attacker, target, dir, attack, outcome.damageTaken());
+                dealt = dealDamage(level, attacker, target, dir, attack, outcome.damageTaken());
                 feedback(defender, FeedbackPayload.YOU_BLOCKED, percent);
                 feedback(attacker, FeedbackPayload.THEY_BLOCKED, percent);
             }
             case HIT -> {
-                boolean hurt = dealDamage(level, attacker, target, dir, attack, 1.0);
-                if (hurt) {
+                dealt = dealDamage(level, attacker, target, dir, attack, 1.0);
+                if (dealt > 0) {
                     level.playSound(null, at.x, at.y, at.z, SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 1.0F, 1.0F);
                     // A clean hit cancels the defender's own wind-up, unless they are swinging this same tick.
                     if (defender != null && !strikerIds.contains(defender.getUUID())) {
@@ -261,16 +288,17 @@ public final class CombatServer {
                 }
             }
         }
+        lastClash = new LastClash(outcome.kind(), outcome.damageTaken(), dealt, lastClash.serial() + 1);
     }
 
     /**
      * Deals {@code share} of the swing's full damage. Full damage is the attacker's attack damage
      * (weapon, strength, etc.) times the attack type's multiplier, plus enchantments like Sharpness.
      */
-    private static boolean dealDamage(ServerLevel level, ServerPlayer attacker, LivingEntity target, AttackDir dir,
-                                      CombatSettings.Attack attack, double share) {
+    private static float dealDamage(ServerLevel level, ServerPlayer attacker, LivingEntity target, AttackDir dir,
+                                    CombatSettings.Attack attack, double share) {
         if (share <= 0) {
-            return false;
+            return 0;
         }
         ItemStack weapon = attacker.getMainHandItem();
         DamageSource source = new DamageSource(
@@ -279,7 +307,7 @@ public final class CombatServer {
         float enchanted = EnchantmentHelper.modifyDamage(level, weapon, target, source, base);
         float damage = (float) (enchanted * attack.damageMultiplier * share);
         if (damage <= 0) {
-            return false;
+            return 0;
         }
         target.invulnerableTime = 0;
         boolean hurt = target.hurtServer(level, source, damage);
@@ -288,23 +316,29 @@ public final class CombatServer {
             weapon.hurtAndBreak(1, attacker, EquipmentSlot.MAINHAND);
             attacker.causeFoodExhaustion(0.1F);
         }
-        return hurt;
+        return hurt ? damage : 0;
     }
 
     private static void feedback(ServerPlayer player, byte kind, int percent) {
         if (player != null) {
-            Services.PLATFORM.sendToPlayer(player, new FeedbackPayload(kind, (byte) Math.max(0, Math.min(100, percent))));
+            sendTo(player, new FeedbackPayload(kind, (byte) Math.max(0, Math.min(100, percent))));
+        }
+    }
+
+    private static void sendTo(ServerPlayer player, CustomPacketPayload payload) {
+        if (!Services.PLATFORM.isFakePlayer(player)) {
+            Services.PLATFORM.sendToPlayer(player, payload);
         }
     }
 
     // ---- state sync ----
 
     private static void broadcastIfChanged(ServerPlayer player, FighterState fighter) {
-        if (fighter.hasShown()) {
+        if (fighter.hasShown() && !Services.PLATFORM.isFakePlayer(player)) {
             Services.PLATFORM.sendToTrackingAndSelf(player, new StatePayload(player.getId(),
                     fighter.shown().id(), fighter.shownDir(), (short) Math.min(Short.MAX_VALUE, fighter.shownTicks())));
-            fighter.clearShown();
         }
+        fighter.clearShown();
     }
 
     private static void sendCurrentState(ServerPlayer subject, FighterState fighter, ServerPlayer to) {
@@ -316,6 +350,6 @@ public final class CombatServer {
         };
         long remaining = Math.max(0, fighter.phaseEnd() - now(subject));
         int ticks = shown == FighterState.Shown.WINDUP || shown == FighterState.Shown.STAGGER ? (int) remaining : 0;
-        Services.PLATFORM.sendToPlayer(to, new StatePayload(subject.getId(), shown.id(), dir, (short) Math.min(Short.MAX_VALUE, ticks)));
+        sendTo(to, new StatePayload(subject.getId(), shown.id(), dir, (short) Math.min(Short.MAX_VALUE, ticks)));
     }
 }

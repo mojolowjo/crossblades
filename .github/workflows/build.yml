@@ -102,6 +102,13 @@ jobs:
           mc-runtime-test: ${{ matrix.loader }}
           java: 25
           fabric-api: ${{ matrix.loader == 'fabric' && '0.155.3' || 'none' }}
+          headlessmc-command: --jvm "-Djava.awt.headless=true -Dcrossblades.selftest=true"
+
+      - name: Check the in-game self-test passed
+        shell: bash
+        run: |
+          grep "\[self-test\]" run/logs/latest.log || true
+          grep -q "\[self-test\] PASSED" run/logs/latest.log
 
       - name: Save game log
         if: always()

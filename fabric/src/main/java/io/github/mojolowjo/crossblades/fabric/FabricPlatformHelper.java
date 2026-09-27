@@ -1,11 +1,18 @@
 package io.github.mojolowjo.crossblades.fabric;
 
 import io.github.mojolowjo.crossblades.platform.IPlatformHelper;
+import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.platform.InputConstants;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.UUID;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
@@ -46,5 +53,20 @@ public class FabricPlatformHelper implements IPlatformHelper {
         if (entity instanceof ServerPlayer self) {
             sendToPlayer(self, payload);
         }
+    }
+
+    @Override
+    public boolean isFakePlayer(ServerPlayer player) {
+        return player instanceof FakePlayer;
+    }
+
+    @Override
+    public ServerPlayer createFakePlayer(ServerLevel level, String name) {
+        return FakePlayer.get(level, new GameProfile(UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8)), name));
+    }
+
+    @Override
+    public InputConstants.Key boundKey(KeyMapping mapping) {
+        return FabricClientAccess.boundKey(mapping);
     }
 }

@@ -4,6 +4,7 @@ import io.github.mojolowjo.crossblades.Crossblades;
 import io.github.mojolowjo.crossblades.client.CombatAnimations;
 import io.github.mojolowjo.crossblades.client.CombatClient;
 import io.github.mojolowjo.crossblades.client.CombatHud;
+import io.github.mojolowjo.crossblades.client.CombatSelfTest;
 import io.github.mojolowjo.crossblades.network.FeedbackPayload;
 import io.github.mojolowjo.crossblades.network.StatePayload;
 import net.minecraft.client.Minecraft;
@@ -36,5 +37,9 @@ public class CrossbladesNeoForgeClient {
 
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Pre.class, event -> CombatClient.onClientTickStart(Minecraft.getInstance()));
         NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> CombatClient.resetConnectionState());
+
+        if (CombatSelfTest.ENABLED) {
+            NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> CombatSelfTest.onClientTickEnd(Minecraft.getInstance()));
+        }
     }
 }

@@ -4,6 +4,7 @@ import io.github.mojolowjo.crossblades.Crossblades;
 import io.github.mojolowjo.crossblades.client.CombatAnimations;
 import io.github.mojolowjo.crossblades.client.CombatClient;
 import io.github.mojolowjo.crossblades.client.CombatHud;
+import io.github.mojolowjo.crossblades.client.CombatSelfTest;
 import io.github.mojolowjo.crossblades.network.FeedbackPayload;
 import io.github.mojolowjo.crossblades.network.StatePayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -29,5 +30,9 @@ public class CrossbladesFabricClient implements ClientModInitializer {
         HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Crossblades.id("combat_hud"), CombatHud::render);
 
         CombatAnimations.register();
+
+        if (CombatSelfTest.ENABLED) {
+            ClientTickEvents.END_CLIENT_TICK.register(CombatSelfTest::onClientTickEnd);
+        }
     }
 }
