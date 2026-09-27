@@ -8,9 +8,9 @@ import com.zigythebird.playeranimcore.animation.Animation;
 import com.zigythebird.playeranimcore.animation.RawAnimation;
 import com.zigythebird.playeranimcore.animation.layered.IAnimation;
 import com.zigythebird.playeranimcore.animation.layered.modifier.AbstractFadeModifier;
-import com.zigythebird.playeranimcore.animation.layered.modifier.AbstractModifier;
 import com.zigythebird.playeranimcore.animation.layered.modifier.SpeedModifier;
 import com.zigythebird.playeranimcore.api.firstPerson.FirstPersonConfiguration;
+import com.zigythebird.playeranimcore.bones.PlayerAnimBone;
 import com.zigythebird.playeranimcore.api.firstPerson.FirstPersonMode;
 import com.zigythebird.playeranimcore.easing.EasingType;
 import com.zigythebird.playeranimcore.enums.PlayState;
@@ -42,7 +42,6 @@ public final class CombatAnimations {
         PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(LAYER, LAYER_PRIORITY, avatar -> {
             PlayerAnimationController controller = new PlayerAnimationController(avatar,
                     (animationController, state, animSetter) -> PlayState.STOP);
-            controller.addModifierBefore(new SpeedModifier(1.0F));
             if (Crossblades.settings().client.firstPersonAnimations) {
                 controller.setFirstPersonMode(FirstPersonMode.THIRD_PERSON_MODEL);
                 controller.setFirstPersonConfiguration(new FirstPersonConfiguration()
@@ -80,14 +79,29 @@ public final class CombatAnimations {
         if (ticks > 0 && animation.length() > 0) {
             speed = animation.length() / ticks;
         }
-        for (AbstractModifier modifier : controller.getModifiers()) {
-            if (modifier instanceof SpeedModifier speedModifier) {
-                speedModifier.speed = speed;
-            }
+        // Only stretch the animation when the server's timing differs from the file's; with the
+        // default settings they match and the animation plays untouched.
+        controller.removeModifierIf(modifier -> modifier instanceof SpeedModifier);
+        if (forceSpeedModifier || Math.abs(speed - 1.0F) > 0.02F) {
+            controller.addModifierBefore(new SpeedModifier(speed));
         }
         controller.replaceAnimationWithFade(
                 AbstractFadeModifier.standardFadeIn(FADE_TICKS, EasingType.EASE_IN_OUT_SINE),
                 RawAnimation.begin().then(animation, loop));
+    }
+
+    /** Self-test only: always add the speed modifier, to compare smoothness with and without it. */
+    public static boolean forceSpeedModifier;
+
+    /** Self-test only: the right arm's current pitch as the animation computes it this frame. */
+    public static float probeRightArmPitch(Player player) {
+        PlayerAnimationController controller = controller(player);
+        if (controller == null) {
+            return Float.NaN;
+        }
+        PlayerAnimBone bone = new PlayerAnimBone("right_arm");
+        controller.get3DTransform(bone);
+        return bone.rotation.x;
     }
 
     /** Whether a combat animation is currently playing on {@code player}. */

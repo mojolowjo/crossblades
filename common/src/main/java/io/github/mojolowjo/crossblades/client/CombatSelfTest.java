@@ -66,8 +66,48 @@ public final class CombatSelfTest {
     private CombatSelfTest() {
     }
 
+    // Frame sampling: records the arm's animated pitch every rendered frame to check the animation
+    // moves smoothly between game ticks rather than stepping once per tick.
+    private static boolean sampling;
+    private static long sampleTick;
+    private static final List<float[]> samples = new ArrayList<>();
+
+    /** Runs every rendered frame (from the HUD). */
+    public static void onFrame(Minecraft mc, float partialTick) {
+        if (sampling && mc.player != null) {
+            samples.add(new float[] {sampleTick, partialTick, CombatAnimations.probeRightArmPitch(mc.player)});
+        }
+    }
+
+    private static void reportSamples(String label) {
+        java.util.Map<Integer, List<Float>> byTick = new java.util.TreeMap<>();
+        for (float[] sample : samples) {
+            byTick.computeIfAbsent((int) sample[0], t -> new ArrayList<>()).add(sample[2]);
+        }
+        int multiFrameTicks = 0;
+        int movingWithinTick = 0;
+        for (List<Float> values : byTick.values()) {
+            if (values.size() > 1) {
+                multiFrameTicks++;
+                float min = Float.MAX_VALUE;
+                float max = -Float.MAX_VALUE;
+                for (float v : values) {
+                    min = Math.min(min, v);
+                    max = Math.max(max, v);
+                }
+                if (max - min > 1e-4F) {
+                    movingWithinTick++;
+                }
+            }
+        }
+        log(String.format(Locale.ROOT, "frame sampling (%s): %d frames over %d ticks (~%.0f fps); %d ticks had several frames, "
+                        + "the arm moved between frames in %d of them",
+                label, samples.size(), byTick.size(), samples.size() / Math.max(1, byTick.size() * 0.05), multiFrameTicks, movingWithinTick));
+    }
+
     /** Runs at the end of every client tick. */
     public static void onClientTickEnd(Minecraft mc) {
+        sampleTick++;
         if (!ENABLED || finished) {
             return;
         }
@@ -315,6 +355,8 @@ public final class CombatSelfTest {
         addGuardPhoto(script, mc, player, useKey, "up", 0, -20);
         addGuardPhoto(script, mc, player, useKey, "left", -20, 0);
         addGuardPhoto(script, mc, player, useKey, "right", 20, 0);
+        addFrameSampling(script, player, attackKey, true);
+        addFrameSampling(script, player, attackKey, false);
         // First person: the HUD arrow during a wind-up, and the guard bar.
         script.add(new PhotoStep(() -> mc.options.setCameraType(CameraType.FIRST_PERSON), 5));
         addAttackPhotos(script, mc, player, attackKey, "fp_right", 20, 0, 6);
@@ -335,6 +377,24 @@ public final class CombatSelfTest {
         script.add(new PhotoStep(() -> KeyMapping.click(Services.PLATFORM.boundKey(attackKey)), ticksIntoWindup));
         script.add(new PhotoStep(() -> screenshot(mc, "windup_" + name), 4));
         script.add(new PhotoStep(() -> screenshot(mc, "strike_" + name), 30));
+    }
+
+    private static void addFrameSampling(List<PhotoStep> script, LocalPlayer player, KeyMapping attackKey, boolean speedModifier) {
+        script.add(new PhotoStep(() -> {
+            CombatAnimations.forceSpeedModifier = speedModifier;
+            player.setXRot(-20);
+        }, 0));
+        script.add(new PhotoStep(() -> player.setXRot(0), 3));
+        script.add(new PhotoStep(() -> {
+            samples.clear();
+            sampling = true;
+            KeyMapping.click(Services.PLATFORM.boundKey(attackKey));
+        }, 12));
+        script.add(new PhotoStep(() -> {
+            sampling = false;
+            reportSamples(speedModifier ? "with speed modifier" : "without speed modifier");
+            CombatAnimations.forceSpeedModifier = false;
+        }, 20));
     }
 
     private static void addGuardPhoto(List<PhotoStep> script, Minecraft mc, LocalPlayer player, KeyMapping useKey,

@@ -14,26 +14,29 @@
                 0
               ]
             },
-            "0.08": {
+            "0.10": {
               "vector": [
                 35,
                 0,
                 35
-              ]
+              ],
+              "easing": "easeOutQuad"
             },
             "0.35": {
               "vector": [
                 30,
                 0,
                 30
-              ]
+              ],
+              "easing": "easeInOutSine"
             },
             "0.60": {
               "vector": [
                 0,
                 0,
                 0
-              ]
+              ],
+              "easing": "easeInOutSine"
             }
           }
         }

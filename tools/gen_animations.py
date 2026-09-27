@@ -53,8 +53,16 @@ GUARD_RIGHT = [-70, 35, 0]         # blade upright, off to the right
 STAGGER = [35, 0, 35]              # arm knocked back and out
 
 
-def frames(pairs):
-    return {f"{t:.2f}": {"vector": list(v)} for t, v in pairs}
+def frames(keys):
+    """Keyframes as (time, vector) or (time, vector, easing). The easing shapes the move INTO that keyframe."""
+    out = {}
+    for key in keys:
+        t, v = key[0], key[1]
+        frame = {"vector": list(v)}
+        if len(key) > 2 and key[2]:
+            frame["easing"] = key[2]
+        out[f"{t:.2f}"] = frame
+    return out
 
 
 def anim(name, length, loop, bones):
@@ -71,36 +79,49 @@ def write(name, data):
         f.write("\n")
 
 
+# Easing: a quick, decisive raise that settles into the chamber; a slow build of tension; then the
+# swing accelerating out of the chamber. Strikes whip through and slow down at the end.
+RAISE = "easeOutCubic"
+HOLD = "easeInOutSine"
+RELEASE = "easeInQuad"
+WHIP = "easeOutQuad"
+SETTLE = "easeInOutSine"
+
+
+def track(times, values, eases):
+    return [(t, v, e) for t, v, e in zip(times, values, eases)]
+
+
 def windup(name, length, chamber, tense, release, body=None, arm_pos=None, leg=None):
     """Raise into the chamber pose early (the tell), hold it, and start the swing at the very end."""
-    t_chamber = round(length * 0.5, 2)
-    t_tense = round(length * 0.8, 2)
-    bones = {"right_arm": {"rotation": [(0, REST), (t_chamber, chamber), (t_tense, tense), (length, release)]}}
+    times = [0, round(length * 0.45, 2), round(length * 0.8, 2), length]
+    eases = [None, RAISE, HOLD, RELEASE]
+    bones = {"right_arm": {"rotation": track(times, [REST, chamber, tense, release], eases)}}
     if arm_pos:
-        bones["right_arm"]["position"] = [(0, [0, 0, 0]), (t_chamber, arm_pos[0]), (t_tense, arm_pos[1]), (length, arm_pos[2])]
+        bones["right_arm"]["position"] = track(times, [[0, 0, 0], arm_pos[0], arm_pos[1], arm_pos[2]], eases)
     if body:
-        bones["body"] = {"rotation": [(0, [0, 0, 0]), (t_chamber, [0, body[0], 0]), (t_tense, [0, body[1], 0]), (length, [0, body[2], 0])]}
+        bones["body"] = {"rotation": track(times, [[0, 0, 0], [0, body[0], 0], [0, body[1], 0], [0, body[2], 0]], eases)}
     if leg:
-        bones["right_leg"] = {"rotation": [(0, [0, 0, 0]), (t_chamber, [leg[0], 0, 0]), (t_tense, [leg[1], 0, 0]), (length, [leg[2], 0, 0])]}
+        bones["right_leg"] = {"rotation": track(times, [[0, 0, 0], [leg[0], 0, 0], [leg[1], 0, 0], [leg[2], 0, 0]], eases)}
     return anim(name, length, "hold_on_last_frame", bones)
 
 
 def strike(name, length, release, end, body=None, arm_pos=None, leg=None):
-    """Follow through fast, hold briefly, then return to rest by the end of recovery."""
-    t_hit = round(min(0.08, length * 0.25), 2)
-    t_hold = round(length * 0.5, 2)
-    bones = {"right_arm": {"rotation": [(0, release), (t_hit, end), (t_hold, end), (length, REST)]}}
+    """Whip through, hold the follow-through briefly, then settle back to rest by the end of recovery."""
+    times = [0, round(min(0.12, length * 0.35), 2), round(length * 0.55, 2), length]
+    eases = [None, WHIP, HOLD, SETTLE]
+    bones = {"right_arm": {"rotation": track(times, [release, end, end, REST], eases)}}
     if arm_pos:
-        bones["right_arm"]["position"] = [(0, arm_pos[0]), (t_hit, arm_pos[1]), (t_hold, arm_pos[1]), (length, [0, 0, 0])]
+        bones["right_arm"]["position"] = track(times, [arm_pos[0], arm_pos[1], arm_pos[1], [0, 0, 0]], eases)
     if body:
-        bones["body"] = {"rotation": [(0, [0, body[0], 0]), (t_hit, [0, body[1], 0]), (t_hold, [0, body[1], 0]), (length, [0, 0, 0])]}
+        bones["body"] = {"rotation": track(times, [[0, body[0], 0], [0, body[1], 0], [0, body[1], 0], [0, 0, 0]], eases)}
     if leg:
-        bones["right_leg"] = {"rotation": [(0, [leg[0], 0, 0]), (t_hit, [leg[1], 0, 0]), (t_hold, [leg[1], 0, 0]), (length, [0, 0, 0])]}
+        bones["right_leg"] = {"rotation": track(times, [[leg[0], 0, 0], [leg[1], 0, 0], [leg[1], 0, 0], [0, 0, 0]], eases)}
     return anim(name, length, False, bones)
 
 
 def guard(name, pose):
-    return anim(name, 0.1, "hold_on_last_frame", {"right_arm": {"rotation": [(0, REST), (0.1, pose)]}})
+    return anim(name, 0.15, "hold_on_last_frame", {"right_arm": {"rotation": [(0, REST), (0.15, pose, RAISE)]}})
 
 
 ANIMATIONS = [
@@ -117,7 +138,8 @@ ANIMATIONS = [
     guard("guard_up", GUARD_UP),
     guard("guard_left", GUARD_LEFT),
     guard("guard_right", GUARD_RIGHT),
-    anim("stagger", 0.6, False, {"right_arm": {"rotation": [(0, OVERHEAD_END), (0.08, STAGGER), (0.35, [30, 0, 30]), (0.6, REST)]}}),
+    anim("stagger", 0.6, False, {"right_arm": {"rotation": [
+        (0, OVERHEAD_END), (0.1, STAGGER, WHIP), (0.35, [30, 0, 30], HOLD), (0.6, REST, SETTLE)]}}),
     # An empty animation: fading into it blends back to the normal vanilla pose.
     ("rest", {"animation_length": 0.1, "loop": False, "bones": {}}),
 ]

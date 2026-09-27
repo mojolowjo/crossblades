@@ -27,6 +27,9 @@ public final class CombatHud {
         if (mc.player == null || mc.options.hideGui) {
             return;
         }
+        if (CombatSelfTest.ENABLED) {
+            CombatSelfTest.onFrame(mc, deltaTracker.getGameTimeDeltaPartialTick(false));
+        }
         int cx = graphics.guiWidth() / 2;
         int cy = graphics.guiHeight() / 2;
 
