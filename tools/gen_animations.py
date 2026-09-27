@@ -10,7 +10,8 @@ Rotations are in degrees and map straight onto Minecraft's model parts:
   right_arm x: negative raises the arm forward/up (-90 = pointing forward, -180 = straight up)
   right_arm y: turns the arm around its own length; with the arm forward, negative swings it to the left
   right_arm z: positive swings the right arm out to the right side
-  torso y:     positive twists the right shoulder back
+  body y:      turns the whole player; positive turns the right shoulder back (winding up)
+  right_leg x: positive swings the leg back
 Positions are in pixels; right_arm z +3 pulls the arm 3 pixels back.
 
 Lengths are the default timings from the config. The mod speeds the animations up or down to match
@@ -40,10 +41,10 @@ LEFT_TENSE = [-155, -10, 55]
 LEFT_RELEASE = [-110, 20, 25]      # sweeping in from the left
 LEFT_END = [-90, 45, 0]            # finished across to the right
 
-POKE_CHAMBER = [25, 0, 0]          # arm drawn back, blade pointing forward
-POKE_TENSE = [30, 0, 0]
-POKE_RELEASE = [-30, 0, 0]
-POKE_END = [-80, 0, 0]             # arm fully extended
+POKE_CHAMBER = [20, 0, 0]          # arm drawn back low, blade level and pointing forward
+POKE_TENSE = [25, 0, 0]
+POKE_RELEASE = [-5, 0, 0]
+POKE_END = [-25, 0, 0]             # arm driven forward, blade still pointing forward
 
 GUARD_UP = [-90, 55, 90]           # blade held flat above the head
 GUARD_LEFT = [-70, -35, 0]         # blade upright, off to the left
@@ -70,27 +71,31 @@ def write(name, data):
         f.write("\n")
 
 
-def windup(name, length, chamber, tense, release, torso=None, arm_pos=None):
+def windup(name, length, chamber, tense, release, body=None, arm_pos=None, leg=None):
     """Raise into the chamber pose early (the tell), hold it, and start the swing at the very end."""
     t_chamber = round(length * 0.5, 2)
     t_tense = round(length * 0.8, 2)
     bones = {"right_arm": {"rotation": [(0, REST), (t_chamber, chamber), (t_tense, tense), (length, release)]}}
     if arm_pos:
         bones["right_arm"]["position"] = [(0, [0, 0, 0]), (t_chamber, arm_pos[0]), (t_tense, arm_pos[1]), (length, arm_pos[2])]
-    if torso:
-        bones["torso"] = {"rotation": [(0, [0, 0, 0]), (t_chamber, [0, torso[0], 0]), (t_tense, [0, torso[1], 0]), (length, [0, torso[2], 0])]}
+    if body:
+        bones["body"] = {"rotation": [(0, [0, 0, 0]), (t_chamber, [0, body[0], 0]), (t_tense, [0, body[1], 0]), (length, [0, body[2], 0])]}
+    if leg:
+        bones["right_leg"] = {"rotation": [(0, [0, 0, 0]), (t_chamber, [leg[0], 0, 0]), (t_tense, [leg[1], 0, 0]), (length, [leg[2], 0, 0])]}
     return anim(name, length, "hold_on_last_frame", bones)
 
 
-def strike(name, length, release, end, torso=None, arm_pos=None):
+def strike(name, length, release, end, body=None, arm_pos=None, leg=None):
     """Follow through fast, hold briefly, then return to rest by the end of recovery."""
     t_hit = round(min(0.08, length * 0.25), 2)
     t_hold = round(length * 0.5, 2)
     bones = {"right_arm": {"rotation": [(0, release), (t_hit, end), (t_hold, end), (length, REST)]}}
     if arm_pos:
         bones["right_arm"]["position"] = [(0, arm_pos[0]), (t_hit, arm_pos[1]), (t_hold, arm_pos[1]), (length, [0, 0, 0])]
-    if torso:
-        bones["torso"] = {"rotation": [(0, [0, torso[0], 0]), (t_hit, [0, torso[1], 0]), (t_hold, [0, torso[1], 0]), (length, [0, 0, 0])]}
+    if body:
+        bones["body"] = {"rotation": [(0, [0, body[0], 0]), (t_hit, [0, body[1], 0]), (t_hold, [0, body[1], 0]), (length, [0, 0, 0])]}
+    if leg:
+        bones["right_leg"] = {"rotation": [(0, [leg[0], 0, 0]), (t_hit, [leg[1], 0, 0]), (t_hold, [leg[1], 0, 0]), (length, [0, 0, 0])]}
     return anim(name, length, False, bones)
 
 
@@ -101,13 +106,14 @@ def guard(name, pose):
 ANIMATIONS = [
     windup("windup_overhead", 0.6, OVERHEAD_CHAMBER, OVERHEAD_TENSE, OVERHEAD_RELEASE),
     strike("strike_overhead", 0.4, OVERHEAD_RELEASE, OVERHEAD_END),
-    windup("windup_right", 0.45, RIGHT_CHAMBER, RIGHT_TENSE, RIGHT_RELEASE, torso=(25, 30, 10)),
-    strike("strike_right", 0.35, RIGHT_RELEASE, RIGHT_END, torso=(10, -20)),
-    windup("windup_left", 0.45, LEFT_CHAMBER, LEFT_TENSE, LEFT_RELEASE, torso=(-25, -30, -10)),
-    strike("strike_left", 0.35, LEFT_RELEASE, LEFT_END, torso=(-10, 20)),
-    windup("windup_poke", 0.35, POKE_CHAMBER, POKE_TENSE, POKE_RELEASE,
-           arm_pos=([0, 0, 2.5], [0, 0, 3], [0, 0, 0])),
-    strike("strike_poke", 0.3, POKE_RELEASE, POKE_END, arm_pos=([0, 0, 0], [0, 0, -3])),
+    windup("windup_right", 0.45, RIGHT_CHAMBER, RIGHT_TENSE, RIGHT_RELEASE, body=(20, 25, 8)),
+    strike("strike_right", 0.35, RIGHT_RELEASE, RIGHT_END, body=(8, -15)),
+    windup("windup_left", 0.45, LEFT_CHAMBER, LEFT_TENSE, LEFT_RELEASE, body=(-20, -25, -8)),
+    strike("strike_left", 0.35, LEFT_RELEASE, LEFT_END, body=(-8, 15)),
+    windup("windup_poke", 0.35, POKE_CHAMBER, POKE_TENSE, POKE_RELEASE, body=(15, 18, 5),
+           arm_pos=([0, 0, 4], [0, 0, 4.5], [0, 0, 0]), leg=(20, 25, 5)),
+    strike("strike_poke", 0.3, POKE_RELEASE, POKE_END, body=(5, -5),
+           arm_pos=([0, 0, 0], [0, 0, -5]), leg=(5, 0)),
     guard("guard_up", GUARD_UP),
     guard("guard_left", GUARD_LEFT),
     guard("guard_right", GUARD_RIGHT),
