@@ -194,45 +194,51 @@ public final class CombatSelfTest {
                 check(clash.serial() > clashSerial && clash.kind() == CombatRules.Kind.BLOCK && clash.damageTaken() == 0.8,
                         "an early guard on the right side blocks 20% (got " + clash + ")");
                 check(Math.abs(lost - DUMMY_DAMAGE * 0.8F) < 0.6F, "and the player takes 80% of 10 (took " + lost + ")");
-                heal(server, player);
+                resetArena(server, player);
+                next(5);
+            }
+            // Wrong side: full damage.
+            case 12 -> {
                 player.setYRot(20);
                 next(0);
             }
-            case 12 -> {
+            case 13 -> {
                 player.setYRot(0);
                 next(2);
             }
-            // Wrong side: full damage.
-            case 13 -> {
+            case 14 -> {
                 check(CombatClient.guardDir() == Guard.RIGHT, "flick right moves the guard right");
                 dummyAttacks(server, AttackDir.RIGHT);
                 next(16);
             }
-            case 14 -> {
+            case 15 -> {
                 CombatServer.LastClash clash = CombatServer.lastClash();
                 float lost = 20 - onServer(server, () -> serverPlayer(server, player).getHealth());
                 check(clash.serial() > clashSerial && clash.kind() == CombatRules.Kind.HIT, "guarding the wrong side does not block (got " + clash + ")");
                 check(Math.abs(lost - DUMMY_DAMAGE) < 0.6F, "and the player takes full damage (took " + lost + ")");
-                heal(server, player);
                 KeyMapping.set(Services.PLATFORM.boundKey(useKey), false);
-                player.setYRot(-20);
-                next(0);
-            }
-            case 15 -> {
-                player.setYRot(0);
-                next(12);
+                resetArena(server, player);
+                next(5);
             }
             // Late guard, raised just before the hit: perfect or nearly perfect.
             case 16 -> {
+                player.setYRot(-20);
+                next(0);
+            }
+            case 17 -> {
+                player.setYRot(0);
+                next(12);
+            }
+            case 18 -> {
                 check(!CombatClient.isGuarding(), "releasing use stops guarding");
                 dummyAttacks(server, AttackDir.RIGHT);
                 next(6);
             }
-            case 17 -> {
+            case 19 -> {
                 KeyMapping.set(Services.PLATFORM.boundKey(useKey), true);
                 next(10);
             }
-            case 18 -> {
+            case 20 -> {
                 CombatServer.LastClash clash = CombatServer.lastClash();
                 float lost = 20 - onServer(server, () -> serverPlayer(server, player).getHealth());
                 boolean blocked = clash.kind() == CombatRules.Kind.PERFECT_BLOCK || clash.kind() == CombatRules.Kind.BLOCK;
@@ -240,24 +246,24 @@ public final class CombatSelfTest {
                         "a guard raised just before the hit blocks most or all damage (got " + clash + ")");
                 check(Math.abs(lost - DUMMY_DAMAGE * clash.damageTaken()) < 0.6F, "and damage matches the tier (took " + lost + ")");
                 log("late guard result: " + clash.kind() + ", took " + Math.round(clash.damageTaken() * 100) + "%");
-                heal(server, player);
                 KeyMapping.set(Services.PLATFORM.boundKey(useKey), false);
+                resetArena(server, player);
                 // Parry timing within one tick is too tight to hit reliably from a test, so widen it.
                 savedParryWindow = Crossblades.settings().parryWindowMs;
                 Crossblades.settings().parryWindowMs = 400;
                 next(12);
             }
             // Parry: attack toward the side the swing comes from (left) just before it lands.
-            case 19 -> {
+            case 21 -> {
                 check(CombatClient.loadedAttack() == AttackDir.LEFT, "the last flick (left) also loaded a left slash");
                 dummyAttacks(server, AttackDir.RIGHT);
                 next(5);
             }
-            case 20 -> {
+            case 22 -> {
                 KeyMapping.click(Services.PLATFORM.boundKey(attackKey));
                 next(8);
             }
-            case 21 -> {
+            case 23 -> {
                 CombatServer.LastClash clash = CombatServer.lastClash();
                 float lost = 20 - onServer(server, () -> serverPlayer(server, player).getHealth());
                 FighterState dummyState = CombatServer.stateOf(dummy.getUUID());
@@ -279,9 +285,12 @@ public final class CombatSelfTest {
         });
     }
 
-    private static void heal(IntegratedServer server, LocalPlayer player) {
+    /** Heals the player and puts them back on their spot facing the dummy (hits knock them back). */
+    private static void resetArena(IntegratedServer server, LocalPlayer player) {
         onServer(server, () -> {
-            serverPlayer(server, player).setHealth(20);
+            ServerPlayer sp = serverPlayer(server, player);
+            sp.setHealth(20);
+            command(server, String.format(Locale.ROOT, "tp %s %.2f %.1f %.2f 0 0", sp.getScoreboardName(), arenaX, ARENA_Y, arenaZ));
             return null;
         });
     }
