@@ -85,7 +85,8 @@ jobs:
       - name: Stage mods
         shell: bash
         run: |
-          mkdir -p run/mods
+          mkdir -p run/mods run/config
+          touch run/config/crossblades-selftest
           cp jars/${{ matrix.loader }}/build/libs/crossblades-${{ matrix.loader }}-*[0-9].jar run/mods/
           url=$(curl -fsSL 'https://api.modrinth.com/v2/project/player-animation-library/version?game_versions=%5B%2226.1.2%22%5D' \
             | jq -r '[.[] | select(.loaders | index("${{ matrix.loader }}"))][0].files[] | select(.primary) | .url')
@@ -102,7 +103,6 @@ jobs:
           mc-runtime-test: ${{ matrix.loader }}
           java: 25
           fabric-api: ${{ matrix.loader == 'fabric' && '0.155.3' || 'none' }}
-          headlessmc-command: --jvm "-Djava.awt.headless=true -Dcrossblades.selftest=true"
 
       - name: Check the in-game self-test passed
         shell: bash

@@ -8,6 +8,7 @@ import io.github.mojolowjo.crossblades.core.Guard;
 import io.github.mojolowjo.crossblades.network.AttackPayload;
 import io.github.mojolowjo.crossblades.platform.Services;
 import io.github.mojolowjo.crossblades.server.CombatServer;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -30,7 +31,8 @@ import net.minecraft.world.phys.AABB;
 
 /**
  * An end-to-end test that plays the mod inside a real game. Only runs when the game is started
- * with {@code -Dcrossblades.selftest=true} (the CI does this); it does nothing otherwise.
+ * with {@code -Dcrossblades.selftest=true} or a file named {@code crossblades-selftest} exists in
+ * the config folder (the CI does this); it does nothing otherwise.
  * <p>
  * It drives the real inputs (camera turns for flicks, the attack and use keys) in singleplayer,
  * against a husk and a dummy fake-player attacker, and checks the results on the server:
@@ -38,7 +40,8 @@ import net.minecraft.world.phys.AABB;
  * with an error so the CI run fails.
  */
 public final class CombatSelfTest {
-    public static final boolean ENABLED = Boolean.getBoolean("crossblades.selftest");
+    public static final boolean ENABLED = Boolean.getBoolean("crossblades.selftest")
+            || Files.exists(Services.PLATFORM.getConfigDir().resolve("crossblades-selftest"));
     private static final double ARENA_Y = 200;
     private static final float DUMMY_DAMAGE = 10;
 
