@@ -55,3 +55,9 @@ sourceSets.configureEach {
         }
     }
 }
+
+// The rule tests in src/test are plain Java programs run by tools/run-core-tests.sh (CI runs it),
+// not JUnit tests, so Gradle's test task finds nothing to run.
+tasks.named('test', Test) {
+    failOnNoDiscoveredTests = false
+}
