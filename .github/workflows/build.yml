@@ -3,7 +3,6 @@ name: Build
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -54,10 +53,33 @@ jobs:
             neoforge/build/libs/*.jar
             !**/*-sources.jar
 
-      - name: Publish release (tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Publishes a GitHub release the first time a new version (gradle.properties) reaches main.
+      - name: Check for a new version
+        id: release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version=//p' gradle.properties)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish release
+        if: steps.release.outputs.new == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.release.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Crossblades ${{ steps.release.outputs.version }}
+          body: |
+            Directional, skill-based melee combat for Minecraft 26.1.2.
+
+            Download the jar for your loader (Fabric or NeoForge) and also install
+            [Player Animation Library](https://modrinth.com/mod/player-animation-library) for 26.1.x.
+            Fabric also needs Fabric API. See the README for controls and settings.
           files: |
             fabric/build/libs/crossblades-fabric-*[0-9].jar
             neoforge/build/libs/crossblades-neoforge-*[0-9].jar
