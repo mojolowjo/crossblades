@@ -1,0 +1,31 @@
+{
+    "schemaVersion": 1,
+    "id": "${mod_id}",
+    "version": "${version}",
+    "name": "${mod_name}",
+    "description": "${description}",
+    "authors": [
+        "${mod_author}"
+    ],
+    "contact": {
+        "sources": "https://github.com/mojolowjo/crossblades",
+        "issues": "https://github.com/mojolowjo/crossblades/issues"
+    },
+    "license": "${license}",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "io.github.mojolowjo.crossblades.fabric.CrossbladesFabric"
+        ],
+        "client": [
+            "io.github.mojolowjo.crossblades.fabric.CrossbladesFabricClient"
+        ]
+    },
+    "depends": {
+        "fabricloader": ">=${fabric_loader_version}",
+        "fabric-api": "*",
+        "minecraft": "~${minecraft_version}",
+        "java": ">=${java_version}",
+        "player_animation_library": "*"
+    }
+}

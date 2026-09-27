@@ -1,0 +1,43 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "windup_overhead": {
+      "animation_length": 0.6,
+      "loop": "hold_on_last_frame",
+      "bones": {
+        "right_arm": {
+          "rotation": {
+            "0.00": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.30": {
+              "vector": [
+                -195,
+                0,
+                10
+              ]
+            },
+            "0.48": {
+              "vector": [
+                -205,
+                0,
+                10
+              ]
+            },
+            "0.60": {
+              "vector": [
+                -120,
+                0,
+                5
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

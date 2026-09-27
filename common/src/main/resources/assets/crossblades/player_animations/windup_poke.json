@@ -1,0 +1,73 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "windup_poke": {
+      "animation_length": 0.35,
+      "loop": "hold_on_last_frame",
+      "bones": {
+        "right_arm": {
+          "rotation": {
+            "0.00": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.17": {
+              "vector": [
+                25,
+                0,
+                0
+              ]
+            },
+            "0.28": {
+              "vector": [
+                30,
+                0,
+                0
+              ]
+            },
+            "0.35": {
+              "vector": [
+                -30,
+                0,
+                0
+              ]
+            }
+          },
+          "position": {
+            "0.00": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.17": {
+              "vector": [
+                0,
+                0,
+                2.5
+              ]
+            },
+            "0.28": {
+              "vector": [
+                0,
+                0,
+                3
+              ]
+            },
+            "0.35": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

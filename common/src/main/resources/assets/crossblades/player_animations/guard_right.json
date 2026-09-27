@@ -1,0 +1,29 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "guard_right": {
+      "animation_length": 0.1,
+      "loop": "hold_on_last_frame",
+      "bones": {
+        "right_arm": {
+          "rotation": {
+            "0.00": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.10": {
+              "vector": [
+                -70,
+                35,
+                0
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

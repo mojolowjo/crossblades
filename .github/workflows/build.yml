@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test combat rules
+        run: ./tools/run-core-tests.sh
+
+      - name: Build Fabric and NeoForge jars
+        run: ./gradlew build --stacktrace
+
+      - name: Upload jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: crossblades-jars
+          path: |
+            fabric/build/libs/*.jar
+            neoforge/build/libs/*.jar
+            !**/*-sources.jar
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            fabric/build/libs/crossblades-fabric-*[0-9].jar
+            neoforge/build/libs/crossblades-neoforge-*[0-9].jar

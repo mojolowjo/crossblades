@@ -1,0 +1,73 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "strike_poke": {
+      "animation_length": 0.3,
+      "loop": false,
+      "bones": {
+        "right_arm": {
+          "rotation": {
+            "0.00": {
+              "vector": [
+                -30,
+                0,
+                0
+              ]
+            },
+            "0.07": {
+              "vector": [
+                -80,
+                0,
+                0
+              ]
+            },
+            "0.15": {
+              "vector": [
+                -80,
+                0,
+                0
+              ]
+            },
+            "0.30": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "position": {
+            "0.00": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.07": {
+              "vector": [
+                0,
+                0,
+                -3
+              ]
+            },
+            "0.15": {
+              "vector": [
+                0,
+                0,
+                -3
+              ]
+            },
+            "0.30": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

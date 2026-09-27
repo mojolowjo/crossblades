@@ -1,0 +1,43 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "strike_overhead": {
+      "animation_length": 0.4,
+      "loop": false,
+      "bones": {
+        "right_arm": {
+          "rotation": {
+            "0.00": {
+              "vector": [
+                -120,
+                0,
+                5
+              ]
+            },
+            "0.08": {
+              "vector": [
+                -40,
+                0,
+                0
+              ]
+            },
+            "0.20": {
+              "vector": [
+                -40,
+                0,
+                0
+              ]
+            },
+            "0.40": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
