@@ -92,36 +92,53 @@ def track(times, values, eases):
     return [(t, v, e) for t, v, e in zip(times, values, eases)]
 
 
+def mid(a, b):
+    """The pose halfway between two poses (an extra point along the move)."""
+    return [round((x + y) / 2, 1) for x, y in zip(a, b)]
+
+
 def windup(name, length, chamber, tense, release, body=None, arm_pos=None, leg=None):
     """Raise into the chamber pose early (the tell), hold it, and start the swing at the very end."""
-    times = [0, round(length * 0.45, 2), round(length * 0.8, 2), length]
-    eases = [None, RAISE, HOLD, RELEASE]
-    bones = {"right_arm": {"rotation": track(times, [REST, chamber, tense, release], eases)}}
+    times = [0, round(length * 0.22, 2), round(length * 0.45, 2), round(length * 0.8, 2), length]
+    eases = [None, "easeInQuad", "easeOutQuad", HOLD, RELEASE]
+
+    def five(rest, a, b, c):
+        return track(times, [rest, mid(rest, a), a, b, c], eases)
+
+    zero = [0, 0, 0]
+    bones = {"right_arm": {"rotation": five(REST, chamber, tense, release)}}
     if arm_pos:
-        bones["right_arm"]["position"] = track(times, [[0, 0, 0], arm_pos[0], arm_pos[1], arm_pos[2]], eases)
+        bones["right_arm"]["position"] = five(zero, arm_pos[0], arm_pos[1], arm_pos[2])
     if body:
-        bones["body"] = {"rotation": track(times, [[0, 0, 0], [0, body[0], 0], [0, body[1], 0], [0, body[2], 0]], eases)}
+        bones["body"] = {"rotation": five(zero, [0, body[0], 0], [0, body[1], 0], [0, body[2], 0])}
     if leg:
-        bones["right_leg"] = {"rotation": track(times, [[0, 0, 0], [leg[0], 0, 0], [leg[1], 0, 0], [leg[2], 0, 0]], eases)}
+        bones["right_leg"] = {"rotation": five(zero, [leg[0], 0, 0], [leg[1], 0, 0], [leg[2], 0, 0])}
     return anim(name, length, "hold_on_last_frame", bones)
 
 
 def strike(name, length, release, end, body=None, arm_pos=None, leg=None):
     """Whip through, hold the follow-through briefly, then settle back to rest by the end of recovery."""
-    times = [0, round(min(0.12, length * 0.35), 2), round(length * 0.55, 2), length]
-    eases = [None, WHIP, HOLD, SETTLE]
-    bones = {"right_arm": {"rotation": track(times, [release, end, end, REST], eases)}}
+    t_hit = round(min(0.12, length * 0.35), 2)
+    times = [0, round(t_hit / 2, 2), t_hit, round(length * 0.55, 2), length]
+    eases = [None, "linear", WHIP, HOLD, SETTLE]
+
+    def five(start, stop, rest):
+        return track(times, [start, mid(start, stop), stop, stop, rest], eases)
+
+    zero = [0, 0, 0]
+    bones = {"right_arm": {"rotation": five(release, end, REST)}}
     if arm_pos:
-        bones["right_arm"]["position"] = track(times, [arm_pos[0], arm_pos[1], arm_pos[1], [0, 0, 0]], eases)
+        bones["right_arm"]["position"] = five(arm_pos[0], arm_pos[1], zero)
     if body:
-        bones["body"] = {"rotation": track(times, [[0, body[0], 0], [0, body[1], 0], [0, body[1], 0], [0, 0, 0]], eases)}
+        bones["body"] = {"rotation": five([0, body[0], 0], [0, body[1], 0], zero)}
     if leg:
-        bones["right_leg"] = {"rotation": track(times, [[leg[0], 0, 0], [leg[1], 0, 0], [leg[1], 0, 0], [0, 0, 0]], eases)}
+        bones["right_leg"] = {"rotation": five([leg[0], 0, 0], [leg[1], 0, 0], zero)}
     return anim(name, length, False, bones)
 
 
 def guard(name, pose):
-    return anim(name, 0.15, "hold_on_last_frame", {"right_arm": {"rotation": [(0, REST), (0.15, pose, RAISE)]}})
+    return anim(name, 0.15, "hold_on_last_frame", {"right_arm": {"rotation": [
+        (0, REST), (0.07, mid(REST, pose), "easeInQuad"), (0.15, pose, "easeOutQuad")]}})
 
 
 ANIMATIONS = [

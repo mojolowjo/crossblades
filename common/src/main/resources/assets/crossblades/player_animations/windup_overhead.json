@@ -14,13 +14,21 @@
                 0
               ]
             },
+            "0.13": {
+              "vector": [
+                -97.5,
+                0.0,
+                5.0
+              ],
+              "easing": "easeInQuad"
+            },
             "0.27": {
               "vector": [
                 -195,
                 0,
                 10
               ],
-              "easing": "easeOutCubic"
+              "easing": "easeOutQuad"
             },
             "0.48": {
               "vector": [

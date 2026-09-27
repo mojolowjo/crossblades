@@ -14,13 +14,21 @@
                 0
               ]
             },
+            "0.10": {
+              "vector": [
+                -75.0,
+                -5.0,
+                25.0
+              ],
+              "easing": "easeInQuad"
+            },
             "0.20": {
               "vector": [
                 -150,
                 -10,
                 50
               ],
-              "easing": "easeOutCubic"
+              "easing": "easeOutQuad"
             },
             "0.36": {
               "vector": [
@@ -49,13 +57,21 @@
                 0
               ]
             },
+            "0.10": {
+              "vector": [
+                0.0,
+                -10.0,
+                0.0
+              ],
+              "easing": "easeInQuad"
+            },
             "0.20": {
               "vector": [
                 0,
                 -20,
                 0
               ],
-              "easing": "easeOutCubic"
+              "easing": "easeOutQuad"
             },
             "0.36": {
               "vector": [

@@ -42,6 +42,10 @@ public final class CombatClient {
     private static int localRecoveryTicks;
     private static long predictedAt = Long.MIN_VALUE;
     private static AttackDir predictedDir;
+    /** The attack we're currently winding up (predicted or confirmed by the server). */
+    private static AttackDir localAttackDir = AttackDir.RIGHT;
+    private static long predictedStrikeAt = Long.MIN_VALUE;
+    private static AttackDir predictedStrikeDir;
 
     private static long clientTicks;
 
@@ -120,6 +124,11 @@ public final class CombatClient {
                 // Predicted: the server's "strike" message will correct this if it differs.
                 localPhase = FighterState.Phase.RECOVERY;
                 localPhaseEnd = clientTicks + localRecoveryTicks;
+                // Swing right away instead of freezing at the end of the wind-up until the
+                // server's message arrives.
+                predictedStrikeAt = clientTicks;
+                predictedStrikeDir = localAttackDir;
+                CombatAnimations.play(player, FighterState.Shown.STRIKE, localAttackDir.id(), localRecoveryTicks);
             } else {
                 localPhase = FighterState.Phase.IDLE;
             }
@@ -167,6 +176,7 @@ public final class CombatClient {
             localRecoveryTicks = CombatSettings.ticks(attack.recoveryMs);
             predictedAt = clientTicks;
             predictedDir = loadedAttack;
+            localAttackDir = loadedAttack;
             CombatAnimations.play(player, FighterState.Shown.WINDUP, loadedAttack.id(), windup);
         }
     }
@@ -199,6 +209,11 @@ public final class CombatClient {
             boolean alreadyShowing = shown == FighterState.Shown.WINDUP
                     && predictedDir != null && predictedDir.id() == payload.dir()
                     && clientTicks - predictedAt <= 20;
+            if (shown == FighterState.Shown.STRIKE) {
+                alreadyShowing = predictedStrikeDir != null && predictedStrikeDir.id() == payload.dir()
+                        && clientTicks - predictedStrikeAt <= 10;
+                predictedStrikeDir = null;
+            }
             predictedDir = null;
             syncLocalPhase(shown, AttackDir.byId(payload.dir()), ticks);
             if (alreadyShowing) {
@@ -213,6 +228,7 @@ public final class CombatClient {
             case WINDUP -> {
                 localPhase = FighterState.Phase.WINDUP;
                 localPhaseEnd = clientTicks + ticks;
+                localAttackDir = dir;
                 localRecoveryTicks = CombatSettings.ticks(Crossblades.settings().attack(dir).recoveryMs);
             }
             case STRIKE, FLINCH -> {
@@ -257,6 +273,7 @@ public final class CombatClient {
         sentGuardHeld = false;
         localPhase = FighterState.Phase.IDLE;
         predictedDir = null;
+        predictedStrikeDir = null;
         feedbackUntil = 0;
     }
 }

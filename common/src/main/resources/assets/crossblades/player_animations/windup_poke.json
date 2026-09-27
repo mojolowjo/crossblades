@@ -14,13 +14,21 @@
                 0
               ]
             },
+            "0.08": {
+              "vector": [
+                10.0,
+                0.0,
+                0.0
+              ],
+              "easing": "easeInQuad"
+            },
             "0.16": {
               "vector": [
                 20,
                 0,
                 0
               ],
-              "easing": "easeOutCubic"
+              "easing": "easeOutQuad"
             },
             "0.28": {
               "vector": [
@@ -47,13 +55,21 @@
                 0
               ]
             },
+            "0.08": {
+              "vector": [
+                0.0,
+                0.0,
+                2.0
+              ],
+              "easing": "easeInQuad"
+            },
             "0.16": {
               "vector": [
                 0,
                 0,
                 4
               ],
-              "easing": "easeOutCubic"
+              "easing": "easeOutQuad"
             },
             "0.28": {
               "vector": [
@@ -82,13 +98,21 @@
                 0
               ]
             },
+            "0.08": {
+              "vector": [
+                0.0,
+                7.5,
+                0.0
+              ],
+              "easing": "easeInQuad"
+            },
             "0.16": {
               "vector": [
                 0,
                 15,
                 0
               ],
-              "easing": "easeOutCubic"
+              "easing": "easeOutQuad"
             },
             "0.28": {
               "vector": [
@@ -117,13 +141,21 @@
                 0
               ]
             },
+            "0.08": {
+              "vector": [
+                10.0,
+                0.0,
+                0.0
+              ],
+              "easing": "easeInQuad"
+            },
             "0.16": {
               "vector": [
                 20,
                 0,
                 0
               ],
-              "easing": "easeOutCubic"
+              "easing": "easeOutQuad"
             },
             "0.28": {
               "vector": [
