@@ -8,14 +8,18 @@ import io.github.mojolowjo.crossblades.core.Guard;
 import io.github.mojolowjo.crossblades.network.AttackPayload;
 import io.github.mojolowjo.crossblades.platform.Services;
 import io.github.mojolowjo.crossblades.server.CombatServer;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Supplier;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.server.level.ServerLevel;
@@ -273,8 +277,92 @@ public final class CombatSelfTest {
                 Crossblades.settings().parryWindowMs = savedParryWindow;
                 next(20);
             }
+            case 24 -> {
+                // Photo session: screenshots of the poses so they can be checked by eye.
+                resetArena(server, player);
+                photoScript = buildPhotoScript(mc, player, attackKey, useKey);
+                photoIndex = 0;
+                next(10);
+            }
+            case 25 -> {
+                if (photoIndex < photoScript.size()) {
+                    PhotoStep photo = photoScript.get(photoIndex++);
+                    photo.action().run();
+                    waitTicks = photo.waitAfter();
+                } else {
+                    mc.options.setCameraType(CameraType.FIRST_PERSON);
+                    next(5);
+                }
+            }
             default -> finish(mc, server);
         }
+    }
+
+    private record PhotoStep(Runnable action, int waitAfter) {
+    }
+
+    private static List<PhotoStep> photoScript = List.of();
+    private static int photoIndex;
+
+    private static List<PhotoStep> buildPhotoScript(Minecraft mc, LocalPlayer player, KeyMapping attackKey, KeyMapping useKey) {
+        List<PhotoStep> script = new ArrayList<>();
+        script.add(new PhotoStep(() -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT), 5));
+        script.add(new PhotoStep(() -> screenshot(mc, "third_person_idle"), 3));
+        addAttackPhotos(script, mc, player, attackKey, "overhead", 0, -20, 8);
+        addAttackPhotos(script, mc, player, attackKey, "right", 20, 0, 6);
+        addAttackPhotos(script, mc, player, attackKey, "left", -20, 0, 6);
+        addAttackPhotos(script, mc, player, attackKey, "poke", 0, 20, 5);
+        addGuardPhoto(script, mc, player, useKey, "up", 0, -20);
+        addGuardPhoto(script, mc, player, useKey, "left", -20, 0);
+        addGuardPhoto(script, mc, player, useKey, "right", 20, 0);
+        // First person: the HUD arrow during a wind-up, and the guard bar.
+        script.add(new PhotoStep(() -> mc.options.setCameraType(CameraType.FIRST_PERSON), 5));
+        addAttackPhotos(script, mc, player, attackKey, "fp_right", 20, 0, 6);
+        addGuardPhoto(script, mc, player, useKey, "fp_left", -20, 0);
+        return script;
+    }
+
+    private static void addAttackPhotos(List<PhotoStep> script, Minecraft mc, LocalPlayer player, KeyMapping attackKey,
+                                        String name, float flickYaw, float flickPitch, int ticksIntoWindup) {
+        script.add(new PhotoStep(() -> {
+            player.setYRot(flickYaw);
+            player.setXRot(flickPitch);
+        }, 0));
+        script.add(new PhotoStep(() -> {
+            player.setYRot(0);
+            player.setXRot(0);
+        }, 3));
+        script.add(new PhotoStep(() -> KeyMapping.click(Services.PLATFORM.boundKey(attackKey)), ticksIntoWindup));
+        script.add(new PhotoStep(() -> screenshot(mc, "windup_" + name), 4));
+        script.add(new PhotoStep(() -> screenshot(mc, "strike_" + name), 30));
+    }
+
+    private static void addGuardPhoto(List<PhotoStep> script, Minecraft mc, LocalPlayer player, KeyMapping useKey,
+                                      String name, float flickYaw, float flickPitch) {
+        script.add(new PhotoStep(() -> {
+            player.setYRot(flickYaw);
+            player.setXRot(flickPitch);
+        }, 0));
+        script.add(new PhotoStep(() -> {
+            player.setYRot(0);
+            player.setXRot(0);
+        }, 3));
+        script.add(new PhotoStep(() -> KeyMapping.set(Services.PLATFORM.boundKey(useKey), true), 6));
+        script.add(new PhotoStep(() -> screenshot(mc, "guard_" + name), 2));
+        script.add(new PhotoStep(() -> KeyMapping.set(Services.PLATFORM.boundKey(useKey), false), 12));
+    }
+
+    private static void screenshot(Minecraft mc, String name) {
+        File dir = new File(mc.gameDirectory, "screenshots");
+        dir.mkdirs();
+        File file = new File(dir, "crossblades-" + name + ".png");
+        Screenshot.takeScreenshot(mc.getMainRenderTarget(), image -> {
+            try (image) {
+                image.writeToFile(file);
+            } catch (IOException e) {
+                log("could not save screenshot " + name + ": " + e);
+            }
+        });
     }
 
     private static void dummyAttacks(IntegratedServer server, AttackDir dir) {

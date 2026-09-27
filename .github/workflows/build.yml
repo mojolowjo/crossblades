@@ -118,6 +118,7 @@ jobs:
           git init -q -b ci-logs-${{ matrix.loader }}
           cp "$GITHUB_WORKSPACE/run/logs/latest.log" game.log 2>/dev/null || echo "no game log" > game.log
           ls "$GITHUB_WORKSPACE/run/crash-reports" >/dev/null 2>&1 && cp "$GITHUB_WORKSPACE"/run/crash-reports/* . || true
+          cp "$GITHUB_WORKSPACE"/run/screenshots/*.png . 2>/dev/null || true
           echo "${{ github.sha }} ${{ job.status }}" > status.txt
           git add .
           git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Game log for ${{ github.sha }}"
