@@ -123,3 +123,75 @@ jobs:
           git add .
           git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Game log for ${{ github.sha }}"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-logs-${{ matrix.loader }}
+
+  # Starts a real dedicated server with the mod, waits for it to finish loading, then stops it.
+  # Catches client-only code being loaded on servers.
+  server-test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        loader: [fabric, neoforge]
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: crossblades-jars
+          path: jars
+
+      - name: Set up server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p server/mods && cd server
+          echo "eula=true" > eula.txt
+          cp ../jars/${{ matrix.loader }}/build/libs/crossblades-${{ matrix.loader }}-*[0-9].jar mods/
+          modrinth() {
+            curl -fsSL "https://api.modrinth.com/v2/project/$1/version?game_versions=%5B%2226.1.2%22%5D&loaders=%5B%22$2%22%5D" \
+              | jq -r '.[0].files[] | select(.primary) | .url'
+          }
+          if [ "${{ matrix.loader }}" = fabric ]; then
+            loader=$(curl -fsSL https://meta.fabricmc.net/v2/versions/loader/26.1.2 | jq -r '.[0].loader.version')
+            installer=$(curl -fsSL https://meta.fabricmc.net/v2/versions/installer | jq -r '.[0].version')
+            curl -fsSL -o server.jar "https://meta.fabricmc.net/v2/versions/loader/26.1.2/$loader/$installer/server/jar"
+            curl -fsSL -o mods/fabric-api.jar "$(modrinth fabric-api fabric)"
+            # Required on Fabric servers too.
+            curl -fsSL -o mods/player-animation-library.jar "$(modrinth player-animation-library fabric)"
+          else
+            version=$(curl -fsSL https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml \
+              | grep -o '<version>26\.1\.2\.[^<]*</version>' | sed 's/<[^>]*>//g' | sort -V | tail -1)
+            echo "NeoForge $version"
+            curl -fsSL -o installer.jar "https://maven.neoforged.net/releases/net/neoforged/neoforge/$version/neoforge-$version-installer.jar"
+            java -jar installer.jar --install-server . > installer.log 2>&1
+            # Player Animation Library is only needed on NeoForge clients, so leave it out here.
+          fi
+          ls mods
+
+      - name: Run server
+        shell: bash
+        run: |
+          cd server
+          if [ -f run.sh ]; then start="bash run.sh nogui"; else start="java -Xmx2G -jar server.jar nogui"; fi
+          ( for i in $(seq 1 300); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; done; sleep 5; echo stop ) \
+            | timeout 400 $start > console.log 2>&1 || true
+          grep "Crossblades loaded" logs/latest.log
+          grep -q "Done (" logs/latest.log
+          ! ls crash-reports/* 2>/dev/null
+
+      - name: Save server log
+        if: always() && github.event_name == 'push'
+        shell: bash
+        run: |
+          mkdir -p /tmp/ci-logs && cd /tmp/ci-logs
+          git init -q -b ci-logs-server-${{ matrix.loader }}
+          cp "$GITHUB_WORKSPACE/server/logs/latest.log" server.log 2>/dev/null || cp "$GITHUB_WORKSPACE/server/console.log" server.log 2>/dev/null || echo "no log" > server.log
+          cp "$GITHUB_WORKSPACE"/server/crash-reports/* . 2>/dev/null || true
+          echo "${{ github.sha }} ${{ job.status }}" > status.txt
+          git add .
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Server log for ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-logs-server-${{ matrix.loader }}
