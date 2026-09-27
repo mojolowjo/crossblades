@@ -23,7 +23,10 @@ import os
 OUT = os.path.join(os.path.dirname(__file__), "..", "common", "src", "main", "resources",
                    "assets", "crossblades", "player_animations")
 
-REST = [0, 0, 0]
+# How Minecraft itself holds the right arm when you're carrying an item: raised a little (-18
+# degrees) and slightly out. Animations start and end here so there is no jump when Minecraft
+# takes the arm back at the end.
+REST = [-18, 0, 3]
 
 # Right-arm poses (see the notes above). Chosen so the arm and blade point where you'd expect.
 OVERHEAD_CHAMBER = [-195, 0, 10]   # hand high above the head, blade pointing back

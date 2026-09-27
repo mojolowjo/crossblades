@@ -40,9 +40,9 @@
             },
             "0.40": {
               "vector": [
+                -18,
                 0,
-                0,
-                0
+                3
               ],
               "easing": "easeInOutSine"
             }

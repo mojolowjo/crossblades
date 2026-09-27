@@ -20,6 +20,8 @@ import io.github.mojolowjo.crossblades.core.FighterState;
 import io.github.mojolowjo.crossblades.core.Guard;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 
@@ -65,8 +67,29 @@ public final class CombatAnimations {
             case STRIKE -> start(controller, "strike_" + attackName(AttackDir.byId(dir)), Animation.LoopType.PLAY_ONCE, ticks);
             case GUARD -> start(controller, "guard_" + guardName(Guard.byId(dir)), Animation.LoopType.HOLD_ON_LAST_FRAME, 0);
             case STAGGER, FLINCH -> start(controller, "stagger", Animation.LoopType.PLAY_ONCE, ticks);
-            case IDLE -> start(controller, "rest", Animation.LoopType.PLAY_ONCE, 0);
+            case IDLE -> {
+                // Only a held pose (guard, or a cancelled wind-up) needs easing back to normal.
+                // A finished swing already ended in the normal pose; easing again would look like
+                // a second little swing.
+                String last = LAST_PLAYED.get(player);
+                if (controller.isActive() && last != null && (last.startsWith("guard_") || last.startsWith("windup_"))) {
+                    start(controller, "rest", Animation.LoopType.PLAY_ONCE, 0);
+                }
+            }
         }
+        LAST_PLAYED.put(player, shown == FighterState.Shown.IDLE ? "rest" : nameFor(shown, dir));
+    }
+
+    private static final Map<Player, String> LAST_PLAYED = new WeakHashMap<>();
+
+    private static String nameFor(FighterState.Shown shown, byte dir) {
+        return switch (shown) {
+            case WINDUP -> "windup_" + attackName(AttackDir.byId(dir));
+            case STRIKE -> "strike_" + attackName(AttackDir.byId(dir));
+            case GUARD -> "guard_" + guardName(Guard.byId(dir));
+            case STAGGER, FLINCH -> "stagger";
+            case IDLE -> "rest";
+        };
     }
 
     private static void start(PlayerAnimationController controller, String name, Animation.LoopType loop, int ticks) {
