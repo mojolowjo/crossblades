@@ -27,7 +27,23 @@ jobs:
         run: ./tools/run-core-tests.sh
 
       - name: Build Fabric and NeoForge jars
-        run: ./gradlew build --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew build --stacktrace 2>&1 | tee build.log
+
+      # Keeps the latest build log on the ci-logs branch so it can be read without a GitHub login.
+      - name: Save build log
+        if: always() && github.event_name == 'push'
+        shell: bash
+        run: |
+          mkdir -p /tmp/ci-logs && cd /tmp/ci-logs
+          git init -q -b ci-logs
+          cp "$GITHUB_WORKSPACE/build.log" . 2>/dev/null || echo "no build log" > build.log
+          echo "${{ github.sha }} ${{ job.status }}" > status.txt
+          git add .
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Build log for ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-logs
 
       - name: Upload jars
         uses: actions/upload-artifact@v4
