@@ -209,6 +209,7 @@ public final class CombatSelfTest {
                     dummy.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SWORD));
                     dummy.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(DUMMY_DAMAGE);
                     sp.setHealth(20);
+                    stopRegeneration(sp);
                     return null;
                 });
                 next(2);
@@ -438,9 +439,16 @@ public final class CombatSelfTest {
         onServer(server, () -> {
             ServerPlayer sp = serverPlayer(server, player);
             sp.setHealth(20);
+            stopRegeneration(sp);
             command(server, String.format(Locale.ROOT, "tp %s %.2f %.1f %.2f 0 0", sp.getScoreboardName(), arenaX, ARENA_Y, arenaZ));
             return null;
         });
+    }
+
+    /** Natural regeneration would heal the player between a hit and the health check. */
+    private static void stopRegeneration(ServerPlayer sp) {
+        sp.getFoodData().setFoodLevel(16);
+        sp.getFoodData().setSaturation(0);
     }
 
     private static void finish(Minecraft mc, IntegratedServer server) {
