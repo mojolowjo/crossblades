@@ -1,0 +1,87 @@
+[28Sep2026 01:51:49.244] [main/INFO] [net.neoforged.fml.startup.Entrypoint/]: JVM Uptime at startup: 184ms
+[28Sep2026 01:51:49.255] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]: Starting FancyModLoader version 11.0.15 (DEDICATED_SERVER in PROD)
+[28Sep2026 01:51:49.255] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]: Game directory: /home/runner/work/crossblades/crossblades/server
+[28Sep2026 01:51:49.308] [main/INFO] [net.neoforged.fml.loading.EarlyServiceDiscovery/]: Found 2 early service jars (out of 68) in 24ms
+[28Sep2026 01:51:49.309] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]: Loading FML Early Services:
+[28Sep2026 01:51:49.309] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]:  - libraries/net/neoforged/fancymodloader/earlydisplay/11.0.15/earlydisplay-11.0.15.jar
+[28Sep2026 01:51:49.310] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]:  - libraries/net/neoforged/fancymodloader/loader/11.0.15/loader-11.0.15.jar
+[28Sep2026 01:51:49.330] [main/INFO] [net.neoforged.fml.loading.ImmediateWindowHandler/]: Not loading early display in headless mode.
+[28Sep2026 01:51:49.344] [main/INFO] [net.neoforged.fml.loading.moddiscovery.locators.GameLocator/]: Failed to find common Minecraft classes and resources on the classpath. Assuming we're launching production.
+[28Sep2026 01:51:49.536] [main/INFO] [net.neoforged.fml.loading.moddiscovery.locators.JarInJarDependencyLocator/]: Found 2 dependencies adding them to mods collection
+[28Sep2026 01:51:49.538] [main/INFO] [net.neoforged.fml.loading.moddiscovery.ModDiscoverer/]: 
+     Mod List:
+		Name Version (Mod Id)
+
+		Crossblades 0.2.0 (crossblades)
+		Minecraft 26.1.2 (minecraft)
+		NeoForge 26.1.2.112 (neoforge)
+[28Sep2026 01:51:49.682] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/home/runner/work/crossblades/crossblades/server/libraries/net/fabricmc/sponge-mixin/0.17.3+mixin.0.8.7/sponge-mixin-0.17.3+mixin.0.8.7.jar Service=FML Env=SERVER
+[28Sep2026 01:51:49.706] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]: Loading FML Plugins:
+[28Sep2026 01:51:49.706] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]:  - ~libraries/net/neoforged/neoforge/26.1.2.112/neoforge-26.1.2.112-universal.jar > net.neoforged.neoforge-coremods-26.1.2.112.jar
+[28Sep2026 01:51:49.815] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]: Building game content classloader:
+ - crossblades (jar(mods/crossblades-neoforge-26.1.2-0.2.0.jar))
+ - minecraft (jar(~libraries/net/neoforged/minecraft-server-patched/26.1.2.112/minecraft-server-patched-26.1.2.112.jar))
+ - mixinextras.neoforge (jar(~libraries/net/neoforged/neoforge/26.1.2.112/neoforge-26.1.2.112-universal.jar > mixinextras-neoforge-0.5.4.jar))
+ - neoforge (jar(~libraries/net/neoforged/neoforge/26.1.2.112/neoforge-26.1.2.112-universal.jar))
+ - net.neoforged.fml.generated (empty(VirtualJar/net.neoforged.fml.generated))
+[28Sep2026 01:51:49.828] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]: Built game content classloader in 26ms
+[28Sep2026 01:51:50.653] [main/INFO] [MixinExtras|Service/]: Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.4).
+[28Sep2026 01:51:54.501] [modloading-worker-0/INFO] [net.neoforged.neoforge.common.NeoForgeMod/NEOFORGE-MOD]: NeoForge mod loading, version 26.1.2.112, for MC 26.1.2
+[28Sep2026 01:51:54.502] [modloading-worker-0/INFO] [Crossblades/]: Crossblades loaded on NeoForge
+[28Sep2026 01:51:55.193] [main/ERROR] [net.minecraft.server.dedicated.Settings/]: Failed to load properties from file: server.properties
+java.nio.file.NoSuchFileException: server.properties
+	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92) ~[?:?]
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106) ~[?:?]
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111) ~[?:?]
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newFileChannel(UnixFileSystemProvider.java:213) ~[?:?]
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:244) ~[?:?]
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:357) ~[?:?]
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:399) ~[?:?]
+	at java.base/java.nio.file.spi.FileSystemProvider.newInputStream(FileSystemProvider.java:371) ~[?:?]
+	at java.base/java.nio.file.Files.newInputStream(Files.java:154) ~[?:?]
+	at TRANSFORMER/minecraft@26.1.2/net.minecraft.server.dedicated.Settings.loadFromFile(Settings.java:38) [minecraft-server-patched-26.1.2.112.jar:?]
+	at TRANSFORMER/minecraft@26.1.2/net.minecraft.server.dedicated.DedicatedServerProperties.fromFile(DedicatedServerProperties.java:156) [minecraft-server-patched-26.1.2.112.jar:?]
+	at TRANSFORMER/minecraft@26.1.2/net.minecraft.server.dedicated.DedicatedServerSettings.<init>(DedicatedServerSettings.java:12) [minecraft-server-patched-26.1.2.112.jar:?]
+	at TRANSFORMER/minecraft@26.1.2/net.minecraft.server.Main.main(Main.java:115) [minecraft-server-patched-26.1.2.112.jar:?]
+	at net.neoforged.fml.startup.Server.main(Server.java:19) [loader-11.0.15.jar:11.0]
+[28Sep2026 01:51:55.235] [main/INFO] [com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService/]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[28Sep2026 01:51:56.105] [Worker-Main-1/INFO] [net.minecraft.server.Main/]: No existing world data, creating new world
+[28Sep2026 01:51:56.973] [main/INFO] [net.minecraft.world.item.crafting.RecipeManager/]: Loaded 1515 recipes
+[28Sep2026 01:51:56.995] [main/INFO] [net.minecraft.advancements.AdvancementTree/]: Loaded 1617 advancements
+[28Sep2026 01:51:56.997] [main/INFO] [net.neoforged.neoforge.common.crafting.RecipePriorityManager/]: Loaded 0 recipe priority overrides
+[28Sep2026 01:51:57.142] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting minecraft server version 26.1.2
+[28Sep2026 01:51:57.142] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Loading properties
+[28Sep2026 01:51:57.142] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Default game type: SURVIVAL
+[28Sep2026 01:51:57.142] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Generating keypair
+[28Sep2026 01:51:57.215] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting Minecraft server on *:25565
+[28Sep2026 01:51:57.332] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Preparing level "world"
+[28Sep2026 01:51:57.595] [Server thread/INFO] [net.minecraft.server.level.progress.LoggingLevelLoadListener/]: Selecting global world spawn...
+[28Sep2026 01:52:01.185] [Server thread/INFO] [net.minecraft.server.level.progress.LoggingLevelLoadListener/]: Loading 0 persistent chunks...
+[28Sep2026 01:52:01.186] [Server thread/INFO] [net.minecraft.server.level.progress.LoggingLevelLoadListener/]: Preparing spawn area: 100%
+[28Sep2026 01:52:01.187] [Server thread/INFO] [net.minecraft.server.level.progress.LoggingLevelLoadListener/]: Time elapsed: 3593 ms
+[28Sep2026 01:52:01.188] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Done (3.883s)! For help, type "help"
+[28Sep2026 01:52:01.190] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[28Sep2026 01:52:01.310] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[28Sep2026 01:52:01.317] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[28Sep2026 01:52:01.329] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[28Sep2026 01:52:01.329] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[28Sep2026 01:52:01.329] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[28Sep2026 01:52:01.329] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage: All dimensions are saved
+[28Sep2026 01:52:01.345] [Server thread/INFO] [net.neoforged.neoforge.server.permission.PermissionAPI/]: Successfully initialized permission handler neoforge:default_handler
+[28Sep2026 01:52:07.159] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: [Crossblades] Server set flick.thresholdDegrees to 11° (was 15°)
+[28Sep2026 01:52:07.159] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: [Crossblades] Server set flick.thresholdDegrees to 11° (was 15°)
+[28Sep2026 01:52:09.151] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Crossblades: changed (click one to change it)
+[28Sep2026 01:52:09.152] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]:   flick.thresholdDegrees = 11°  (default 15°)
+[28Sep2026 01:52:11.149] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Stopping the server
+[28Sep2026 01:52:11.199] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Stopping server
+[28Sep2026 01:52:11.200] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving players
+[28Sep2026 01:52:11.200] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving worlds
+[28Sep2026 01:52:11.201] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[28Sep2026 01:52:11.221] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[28Sep2026 01:52:11.222] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[28Sep2026 01:52:11.226] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[28Sep2026 01:52:11.226] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[28Sep2026 01:52:11.226] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[28Sep2026 01:52:11.226] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: ThreadedAnvilChunkStorage: All dimensions are saved
+[28Sep2026 01:52:11.263] [main/INFO] [net.neoforged.fml.loading.FMLLoader/]: Closing FML Loader 6f8f0cdf
+[28Sep2026 01:52:11.263] [main/INFO] [net.neoforged.fml.ModLoader/]: Clearing ModLoader
