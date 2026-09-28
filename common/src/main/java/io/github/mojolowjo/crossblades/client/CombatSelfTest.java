@@ -1,5 +1,6 @@
 package io.github.mojolowjo.crossblades.client;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.github.mojolowjo.crossblades.Crossblades;
 import io.github.mojolowjo.crossblades.core.AttackDir;
 import io.github.mojolowjo.crossblades.core.CombatRules;
@@ -61,7 +62,6 @@ public final class CombatSelfTest {
     private static ServerPlayer dummy;
     private static float healthBefore;
     private static long clashSerial;
-    private static int savedParryWindow;
 
     private CombatSelfTest() {
     }
@@ -293,9 +293,13 @@ public final class CombatSelfTest {
                 log("late guard result: " + clash.kind() + ", took " + Math.round(clash.damageTaken() * 100) + "%");
                 KeyMapping.set(Services.PLATFORM.boundKey(useKey), false);
                 resetArena(server, player);
-                // Parry timing within one tick is too tight to hit reliably from a test, so widen it.
-                savedParryWindow = Crossblades.settings().parryWindowMs;
-                Crossblades.settings().parryWindowMs = 400;
+                // Parry timing within one tick is too tight to hit reliably from a test, so widen it
+                // with the in-game command (which also tests the command).
+                check(commandResult(server, "crossblades set parryWindowMs fast") == 0
+                        && Crossblades.settings().parryWindowMs == 100, "/crossblades set refuses a value that isn't a number");
+                check(commandResult(server, "crossblades set parryWindowMs 400") == 1
+                        && Crossblades.settings().parryWindowMs == 400, "/crossblades set changes a setting right away");
+                check(configFileContains("\"parryWindowMs\": 400"), "and saves it to the config file");
                 next(12);
             }
             // Parry: attack toward the side the swing comes from (left) just before it lands.
@@ -315,17 +319,59 @@ public final class CombatSelfTest {
                 check(clash.serial() > clashSerial && clash.kind() == CombatRules.Kind.PARRY, "attacking into the swing parries it (got " + clash + ")");
                 check(lost < 0.01F, "a parry takes no damage (took " + lost + ")");
                 check(dummyState != null && dummyState.phase() == FighterState.Phase.STAGGER, "the parried attacker is staggered");
-                Crossblades.settings().parryWindowMs = savedParryWindow;
+                check(commandResult(server, "crossblades reset parryWindowMs") == 1
+                        && Crossblades.settings().parryWindowMs == 100, "/crossblades reset puts a setting back to its default");
                 next(20);
             }
+            // Flick sensitivity can be tuned live: with a 30 degree threshold a 20 degree flick
+            // no longer counts, and after a reset it does again.
             case 24 -> {
+                check(commandResult(server, "crossblades set flick.thresholdDegrees 30") == 1
+                        && Crossblades.settings().flick.thresholdDegrees == 30, "/crossblades set changes the flick threshold");
+                check(commandResult(server, "crossblades") == 1, "/crossblades shows help");
+                check(commandResult(server, "crossblades list") == 1, "/crossblades list shows the groups");
+                check(commandResult(server, "crossblades list flick") == 5, "/crossblades list flick shows the 5 flick settings");
+                check(commandResult(server, "crossblades list changed") == 1, "/crossblades list changed shows the one changed setting");
+                check(commandResult(server, "crossblades get FLICK.thresholddegrees") == 1, "/crossblades get works and ignores case");
+                check(commandResult(server, "crossblades get nothing.here") == 0, "/crossblades get refuses an unknown setting");
+                next(2);
+            }
+            case 25 -> {
+                player.setYRot(20);
+                next(0);
+            }
+            case 26 -> {
+                player.setYRot(0);
+                next(2);
+            }
+            case 27 -> {
+                check(CombatClient.loadedAttack() == AttackDir.LEFT,
+                        "with a 30 degree threshold a 20 degree flick doesn't count (got " + CombatClient.loadedAttack() + ")");
+                check(commandResult(server, "crossblades reset flick.thresholdDegrees") == 1
+                        && Crossblades.settings().flick.thresholdDegrees == 15, "/crossblades reset puts the flick threshold back");
+                next(2);
+            }
+            case 28 -> {
+                player.setYRot(20);
+                next(0);
+            }
+            case 29 -> {
+                player.setYRot(0);
+                next(2);
+            }
+            case 30 -> {
+                check(CombatClient.loadedAttack() == AttackDir.RIGHT,
+                        "after the reset the same flick counts again (got " + CombatClient.loadedAttack() + ")");
+                next(5);
+            }
+            case 31 -> {
                 // Photo session: screenshots of the poses so they can be checked by eye.
                 resetArena(server, player);
                 photoScript = buildPhotoScript(mc, player, attackKey, useKey);
                 photoIndex = 0;
                 next(10);
             }
-            case 25 -> {
+            case 32 -> {
                 if (photoIndex < photoScript.size()) {
                     PhotoStep photo = photoScript.get(photoIndex++);
                     photo.action().run();
@@ -509,5 +555,29 @@ public final class CombatSelfTest {
 
     private static void command(IntegratedServer server, String command) {
         server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), command);
+    }
+
+    /** Runs a command on the server and returns its result (-1 if it couldn't be parsed or crashed). */
+    private static int commandResult(IntegratedServer server, String command) {
+        return onServer(server, () -> {
+            try {
+                return server.getCommands().getDispatcher().execute(command, server.createCommandSourceStack());
+            } catch (CommandSyntaxException e) {
+                log("command \"" + command + "\" failed: " + e.getMessage());
+                return -1;
+            } catch (RuntimeException e) {
+                Crossblades.LOG.error("[self-test] command \"{}\" crashed", command, e);
+                return -1;
+            }
+        });
+    }
+
+    private static boolean configFileContains(String text) {
+        try {
+            return Files.readString(Services.PLATFORM.getConfigDir().resolve("crossblades.json")).contains(text);
+        } catch (IOException e) {
+            log("could not read the config file: " + e);
+            return false;
+        }
     }
 }

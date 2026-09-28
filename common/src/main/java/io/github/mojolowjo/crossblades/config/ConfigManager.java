@@ -2,6 +2,7 @@ package io.github.mojolowjo.crossblades.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import io.github.mojolowjo.crossblades.Crossblades;
 import io.github.mojolowjo.crossblades.core.CombatSettings;
@@ -19,6 +20,7 @@ import java.nio.file.Path;
 public final class ConfigManager {
     public static final String FILE_NAME = "crossblades.json";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    private static final Gson COMPACT = new GsonBuilder().disableHtmlEscaping().create();
 
     private ConfigManager() {
     }
@@ -38,11 +40,31 @@ public final class ConfigManager {
             settings = new CombatSettings();
         }
         settings.sanitize();
-        save(file, settings);
+        write(file, settings);
         return settings;
     }
 
-    private static void save(Path file, CombatSettings settings) {
+    public static void save(Path configDir, CombatSettings settings) {
+        write(configDir.resolve(FILE_NAME), settings);
+    }
+
+    /** The combat rules as JSON, without the personal client section (for sending to players). */
+    public static String rulesToJson(CombatSettings settings) {
+        JsonObject json = GSON.toJsonTree(settings).getAsJsonObject();
+        json.remove("client");
+        return COMPACT.toJson(json);
+    }
+
+    /** Reads rules sent by {@link #rulesToJson}; the client section gets defaults. */
+    public static CombatSettings rulesFromJson(String json) {
+        CombatSettings settings = COMPACT.fromJson(json, CombatSettings.class);
+        if (settings == null) {
+            throw new JsonParseException("empty settings");
+        }
+        return settings.sanitize();
+    }
+
+    private static void write(Path file, CombatSettings settings) {
         try {
             Files.createDirectories(file.getParent());
             try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {

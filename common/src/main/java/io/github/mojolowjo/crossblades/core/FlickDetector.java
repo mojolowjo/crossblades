@@ -31,12 +31,12 @@ public final class FlickDetector {
     private int returnGraceTicks = 8;
     private double returnOverride = 2.0;
 
-    public void configure(CombatSettings.Client settings) {
-        this.thresholdDegrees = settings.flickThresholdDegrees;
-        this.windowTicks = Math.max(1, Math.min(MAX_WINDOW, CombatSettings.ticks(settings.flickWindowMs)));
-        this.dominance = settings.flickDominance;
-        this.returnGraceTicks = Math.max(0, Math.round(settings.flickReturnGraceMs / (float) CombatSettings.MS_PER_TICK));
-        this.returnOverride = settings.flickReturnOverride;
+    public void configure(CombatSettings.FlickSettings settings) {
+        this.thresholdDegrees = settings.thresholdDegrees;
+        this.windowTicks = Math.max(1, Math.min(MAX_WINDOW, CombatSettings.ticks(settings.windowMs)));
+        this.dominance = settings.dominance;
+        this.returnGraceTicks = Math.max(0, Math.round(settings.returnGraceMs / (float) CombatSettings.MS_PER_TICK));
+        this.returnOverride = settings.returnOverride;
         clearWindow();
     }
 

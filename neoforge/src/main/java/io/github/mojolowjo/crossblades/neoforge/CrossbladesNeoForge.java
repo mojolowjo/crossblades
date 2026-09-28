@@ -4,14 +4,19 @@ import io.github.mojolowjo.crossblades.Crossblades;
 import io.github.mojolowjo.crossblades.network.AttackPayload;
 import io.github.mojolowjo.crossblades.network.FeedbackPayload;
 import io.github.mojolowjo.crossblades.network.GuardPayload;
+import io.github.mojolowjo.crossblades.network.SettingsPayload;
 import io.github.mojolowjo.crossblades.network.StatePayload;
 import io.github.mojolowjo.crossblades.server.CombatServer;
+import io.github.mojolowjo.crossblades.server.CrossbladesCommand;
+import io.github.mojolowjo.crossblades.server.LiveSettings;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -29,6 +34,13 @@ public class CrossbladesNeoForge {
                 CombatServer.onPlayerLeave(player);
             }
         });
+        NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, event -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                LiveSettings.onPlayerJoin(player);
+            }
+        });
+        NeoForge.EVENT_BUS.addListener(ServerStartingEvent.class, event -> LiveSettings.onServerStarting());
+        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, event -> CrossbladesCommand.register(event.getDispatcher()));
         NeoForge.EVENT_BUS.addListener(PlayerEvent.StartTracking.class, event -> {
             if (event.getEntity() instanceof ServerPlayer watcher) {
                 CombatServer.onStartTracking(event.getTarget(), watcher);
@@ -57,5 +69,6 @@ public class CrossbladesNeoForge {
         // Client handlers are registered in CrossbladesNeoForgeClient so servers never load client code.
         registrar.playToClient(StatePayload.TYPE, StatePayload.CODEC);
         registrar.playToClient(FeedbackPayload.TYPE, FeedbackPayload.CODEC);
+        registrar.playToClient(SettingsPayload.TYPE, SettingsPayload.CODEC);
     }
 }

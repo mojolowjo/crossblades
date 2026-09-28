@@ -6,6 +6,7 @@ import io.github.mojolowjo.crossblades.client.CombatClient;
 import io.github.mojolowjo.crossblades.client.CombatHud;
 import io.github.mojolowjo.crossblades.client.CombatSelfTest;
 import io.github.mojolowjo.crossblades.network.FeedbackPayload;
+import io.github.mojolowjo.crossblades.network.SettingsPayload;
 import io.github.mojolowjo.crossblades.network.StatePayload;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -29,6 +30,7 @@ public class CrossbladesNeoForgeClient {
         modBus.addListener(RegisterClientPayloadHandlersEvent.class, event -> {
             event.register(StatePayload.TYPE, (payload, context) -> CombatClient.onState(payload));
             event.register(FeedbackPayload.TYPE, (payload, context) -> CombatClient.onFeedback(payload));
+            event.register(SettingsPayload.TYPE, (payload, context) -> CombatClient.onSettings(payload));
         });
         modBus.addListener(RegisterGuiLayersEvent.class,
                 event -> event.registerAbove(VanillaGuiLayers.CROSSHAIR, Crossblades.id("combat_hud"), CombatHud::render));
@@ -36,7 +38,7 @@ public class CrossbladesNeoForgeClient {
         modBus.addListener(FMLClientSetupEvent.class, event -> event.enqueueWork(CombatAnimations::register));
 
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Pre.class, event -> CombatClient.onClientTickStart(Minecraft.getInstance()));
-        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> CombatClient.resetConnectionState());
+        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> CombatClient.onDisconnect());
 
         if (CombatSelfTest.ENABLED) {
             NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> CombatSelfTest.onClientTickEnd(Minecraft.getInstance()));

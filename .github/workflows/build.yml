@@ -199,10 +199,16 @@ jobs:
         run: |
           cd server
           if [ -f run.sh ]; then start="bash run.sh nogui"; else start="java -Xmx2G -jar server.jar nogui"; fi
-          ( for i in $(seq 1 300); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; done; sleep 5; echo stop ) \
+          ( for i in $(seq 1 300); do sleep 1; grep -q "Done (" logs/latest.log 2>/dev/null && break; done; sleep 5
+            # Tune a setting from the console the way an admin would, then look at it.
+            echo "crossblades set flick.thresholdDegrees 11"; sleep 2
+            echo "crossblades list changed"; sleep 2
+            echo stop ) \
             | timeout 400 $start > console.log 2>&1 || true
           grep "Crossblades loaded" logs/latest.log
           grep -q "Done (" logs/latest.log
+          grep "set flick.thresholdDegrees to 11" logs/latest.log
+          grep '"thresholdDegrees": 11' config/crossblades.json
           ! ls crash-reports/* 2>/dev/null
 
       - name: Save server log

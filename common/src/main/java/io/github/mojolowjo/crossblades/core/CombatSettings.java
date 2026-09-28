@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Every tunable number in the mod. Saved as {@code config/crossblades.json}.
+ * Every tunable number in the mod. Saved as {@code config/crossblades.json}, and changeable while
+ * playing with the {@code /crossblades} command.
  * <p>
- * On a server, the server's copy decides all combat rules. The {@link Client} section only
- * affects the player whose game reads it (mouse flick feel and visuals).
+ * On a server, the server's copy decides all combat rules, including how mouse flicks are read;
+ * it is sent to every player who joins. The {@link Client} section only affects the player whose
+ * game reads it (visuals).
  * <p>
  * Times are in milliseconds. The server runs in 50 ms ticks, so times are rounded to the
  * nearest 50 ms.
@@ -46,6 +48,9 @@ public final class CombatSettings {
     /** Extra size added around every hitbox, in blocks, to make hits a little forgiving. */
     public double hitboxPadding = 0.15;
 
+    /** How quick mouse movements are turned into attack and guard directions. Same for everyone on a server. */
+    public FlickSettings flick = new FlickSettings();
+
     public Client client = new Client();
 
     public Attack attack(AttackDir dir) {
@@ -81,23 +86,26 @@ public final class CombatSettings {
         List<BlockTier> cleaned = new ArrayList<>();
         for (BlockTier tier : blockTiers) {
             if (tier != null) {
-                cleaned.add(new BlockTier(Math.max(0, tier.underMs), clamp01(tier.damageTaken)));
+                cleaned.add(new BlockTier(clampMs(tier.underMs, 0), clamp01(tier.damageTaken)));
             }
         }
         cleaned.sort((a, b) -> Integer.compare(a.underMs, b.underMs));
         blockTiers = cleaned;
         blockDamageAfterLastTier = clamp01(blockDamageAfterLastTier);
-        parryWindowMs = Math.max(0, parryWindowMs);
-        parryStaggerMs = Math.max(0, parryStaggerMs);
-        riposteWindupMs = Math.max(0, riposteWindupMs);
-        hitFlinchMs = Math.max(0, hitFlinchMs);
+        parryWindowMs = clampMs(parryWindowMs, 0);
+        parryStaggerMs = clampMs(parryStaggerMs, 0);
+        riposteWindupMs = clampMs(riposteWindupMs, 0);
+        hitFlinchMs = clampMs(hitFlinchMs, 0);
         blockConeDegrees = Math.max(0, Math.min(180, blockConeDegrees));
-        inputBufferMs = Math.max(0, inputBufferMs);
+        inputBufferMs = clampMs(inputBufferMs, 0);
         hitboxPadding = Math.max(0, Math.min(2, hitboxPadding));
+        if (flick == null) {
+            flick = new FlickSettings();
+        }
+        flick.sanitize();
         if (client == null) {
             client = new Client();
         }
-        client.sanitize();
         return this;
     }
 
@@ -105,14 +113,19 @@ public final class CombatSettings {
         if (attack == null) {
             return fallback;
         }
-        attack.windupMs = Math.max(50, attack.windupMs);
-        attack.recoveryMs = Math.max(0, attack.recoveryMs);
-        attack.damageMultiplier = Math.max(0, attack.damageMultiplier);
+        attack.windupMs = clampMs(attack.windupMs, 50);
+        attack.recoveryMs = clampMs(attack.recoveryMs, 0);
+        attack.damageMultiplier = Double.isNaN(attack.damageMultiplier) ? 1 : Math.max(0, Math.min(100, attack.damageMultiplier));
         attack.reach = Math.max(0.5, Math.min(12, attack.reach));
-        attack.maxTargets = Math.max(1, attack.maxTargets);
+        attack.maxTargets = Math.max(1, Math.min(32, attack.maxTargets));
         attack.horizontalArcDegrees = Math.max(0, Math.min(90, attack.horizontalArcDegrees));
         attack.verticalArcDegrees = Math.max(0, Math.min(90, attack.verticalArcDegrees));
         return attack;
+    }
+
+    /** Times are kept between {@code min} and 10 seconds. */
+    private static int clampMs(int ms, int min) {
+        return Math.max(min, Math.min(10_000, ms));
     }
 
     private static double clamp01(double v) {
@@ -174,34 +187,38 @@ public final class CombatSettings {
         }
     }
 
-    /** Settings that only affect your own game. */
-    public static final class Client {
+    /** How mouse flicks are read. */
+    public static final class FlickSettings {
         /** How far (in degrees of camera turn) a quick mouse movement must go to count as a flick. */
-        public double flickThresholdDegrees = 15;
+        public double thresholdDegrees = 15;
         /** The flick has to happen within this much time. */
-        public int flickWindowMs = 100;
+        public int windowMs = 100;
         /** The flick's main direction must be this many times bigger than the other direction. */
-        public double flickDominance = 1.5;
+        public double dominance = 1.5;
         /**
          * After a flick, moving back the opposite way within this time is treated as re-aiming
          * and ignored, so flicking right and then re-centering on your target keeps "right".
          */
-        public int flickReturnGraceMs = 400;
+        public int returnGraceMs = 400;
         /** ...unless the opposite movement is this many times the normal threshold. */
-        public double flickReturnOverride = 2.0;
+        public double returnOverride = 2.0;
+
+        void sanitize() {
+            thresholdDegrees = Math.max(1, Math.min(180, thresholdDegrees));
+            windowMs = Math.max(50, Math.min(1000, windowMs));
+            dominance = Math.max(1, Math.min(10, dominance));
+            returnGraceMs = Math.max(0, Math.min(5000, returnGraceMs));
+            returnOverride = Math.max(1, Math.min(10, returnOverride));
+        }
+    }
+
+    /** Settings that only affect your own game. */
+    public static final class Client {
         /** Show your own swings in first person. Turn off if it looks wrong with other mods. */
         public boolean firstPersonAnimations = true;
         /** Show the arrow next to the crosshair. */
         public boolean showDirectionArrow = true;
         /** Show "PERFECT BLOCK", "PARRY!" and similar text under the crosshair. */
         public boolean showFeedbackText = true;
-
-        void sanitize() {
-            flickThresholdDegrees = Math.max(1, Math.min(180, flickThresholdDegrees));
-            flickWindowMs = Math.max(50, Math.min(1000, flickWindowMs));
-            flickDominance = Math.max(1, flickDominance);
-            flickReturnGraceMs = Math.max(0, flickReturnGraceMs);
-            flickReturnOverride = Math.max(1, flickReturnOverride);
-        }
     }
 }

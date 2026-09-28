@@ -66,17 +66,38 @@ tick, both hit.
 ## Settings
 
 Everything is in `config/crossblades.json` (created on first launch). On a server, the server's
-file decides the combat rules; the `client` section only affects your own game.
+file decides the combat rules, including how flicks are read, and every player gets them when they
+join. The `client` section only affects your own game.
 
-- Wind-up, recovery, damage, reach and swing width for `overhead`, `slash` and `poke`
-- `blockTiers`, `blockDamageAfterLastTier`: the blocking table above
+### Tuning while you play
+
+Change any rule in game with `/crossblades`. Changes apply instantly for everyone on the server,
+are announced in chat, and are saved to the config file.
+
+| Command | What it does |
+|---|---|
+| `/crossblades list` | Pick a group: `flick`, `overhead`, `slash`, `poke`, `blocking`, `parry`, `other`, `changed`, `all` |
+| `/crossblades list flick` | Show the settings in a group (click one to change it, hover to see what it does) |
+| `/crossblades get flick.thresholdDegrees` | One value, its default, and what it does |
+| `/crossblades set flick.thresholdDegrees 11` | Change it |
+| `/crossblades reset flick.thresholdDegrees` | Back to the default (`reset all` for everything) |
+| `/crossblades reload` | Read the config file again after editing it by hand |
+
+`list` and `get` work for everyone; `set`, `reset` and `reload` need operator rights. In your own
+world opened to LAN, turn **Allow Cheats** on. Values can be typed as `400`, `400ms` or `20%`
+(= 0.2), and on/off settings take `true`/`false`.
+
+What there is:
+
+- `flick.*`: how flicks are read. `thresholdDegrees` (lower = easier to flick), `windowMs` (higher =
+  slower movements count), `dominance`, `returnGraceMs`, `returnOverride`
+- `overhead.*`, `slash.*`, `poke.*`: wind-up, recovery, damage, reach, targets and swing width
+- `blockTiers.*`, `blockDamageAfterLastTier`: the blocking table above
 - `parryWindowMs`, `parryStaggerMs`, `riposteWindupMs`
-- `hitsInterruptWindups`, `hitFlinchMs`, `blockConeDegrees`
+- `hitsInterruptWindups`, `hitFlinchMs`, `blockConeDegrees`, `inputBufferMs`, `hitboxPadding`
 - `disableVanillaWeaponAttacks`: stops normal click-spam attacks with weapons
-- `client.flickThresholdDegrees`, `client.flickWindowMs`: how hard you need to flick
-- `client.firstPersonAnimations`, `client.showDirectionArrow`, `client.showFeedbackText`
-
-Restart the game after changing it.
+- `client.firstPersonAnimations`, `client.showDirectionArrow`, `client.showFeedbackText`: your own
+  game only (edit the file and restart)
 
 Which items count as weapons is the item tag `crossblades:melee_weapons` (swords and axes by
 default), which you can change with a datapack.
@@ -95,8 +116,9 @@ On every push, GitHub Actions:
 2. builds both jars,
 3. starts the real game headless on Fabric and NeoForge and runs an in-game self-test that plays
    the combat loop with real inputs (flicks, clicks, holding block) against a husk and a dummy
-   attacker, checking damage, block tiers, wrong-side hits and parries, and screenshots every pose,
-4. starts a dedicated server on each loader to make sure it loads.
+   attacker, checking damage, block tiers, wrong-side hits, parries and live tuning with
+   `/crossblades`, and screenshots every pose,
+4. starts a dedicated server on each loader, changes a setting from the console and checks it was saved.
 
 The latest logs and screenshots are kept on the `ci-logs*` branches.
 

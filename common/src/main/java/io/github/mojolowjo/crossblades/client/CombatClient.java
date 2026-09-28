@@ -2,6 +2,7 @@ package io.github.mojolowjo.crossblades.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.mojolowjo.crossblades.Crossblades;
+import io.github.mojolowjo.crossblades.config.ConfigManager;
 import io.github.mojolowjo.crossblades.core.AttackDir;
 import io.github.mojolowjo.crossblades.core.CombatSettings;
 import io.github.mojolowjo.crossblades.core.FighterState;
@@ -11,6 +12,7 @@ import io.github.mojolowjo.crossblades.core.Guard;
 import io.github.mojolowjo.crossblades.network.AttackPayload;
 import io.github.mojolowjo.crossblades.network.FeedbackPayload;
 import io.github.mojolowjo.crossblades.network.GuardPayload;
+import io.github.mojolowjo.crossblades.network.SettingsPayload;
 import io.github.mojolowjo.crossblades.network.StatePayload;
 import io.github.mojolowjo.crossblades.platform.Services;
 import net.minecraft.client.KeyMapping;
@@ -28,6 +30,10 @@ public final class CombatClient {
             "key.crossblades.toggle_stance", InputConstants.KEY_R, KeyMapping.Category.MISC);
 
     private static final FlickDetector FLICKS = new FlickDetector();
+    /** Which settings the flick detector was last set up from. */
+    private static int flickSettingsVersion = Integer.MIN_VALUE;
+    /** Whether we're using rules sent by a remote server instead of our own config file. */
+    private static boolean usingServerRules;
 
     private static boolean stanceOn = true;
     private static AttackDir loadedAttack = AttackDir.RIGHT;
@@ -59,7 +65,16 @@ public final class CombatClient {
     /** Call from the loader's client entry point. */
     public static void init() {
         Crossblades.init();
-        FLICKS.configure(Crossblades.settings().client);
+        updateFlickSettings();
+    }
+
+    /** Picks up new flick settings (from the server, or from /crossblades in your own world). */
+    private static void updateFlickSettings() {
+        int version = Crossblades.settingsVersion();
+        if (version != flickSettingsVersion) {
+            flickSettingsVersion = version;
+            FLICKS.configure(Crossblades.settings().flick);
+        }
     }
 
     // ---- state the HUD reads ----
@@ -113,6 +128,7 @@ public final class CombatClient {
             return;
         }
         clientTicks++;
+        updateFlickSettings();
 
         while (TOGGLE_STANCE.consumeClick()) {
             stanceOn = !stanceOn;
@@ -243,6 +259,25 @@ public final class CombatClient {
         }
     }
 
+    /** The server's rules: use them while connected, so predictions and flicks match the server. */
+    public static void onSettings(SettingsPayload payload) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getSingleplayerServer() != null) {
+            // Our own world (also when it's opened to LAN): the server already uses the same settings.
+            return;
+        }
+        CombatSettings rules;
+        try {
+            rules = ConfigManager.rulesFromJson(payload.json());
+        } catch (RuntimeException e) {
+            Crossblades.LOG.warn("Could not read the server's combat settings; keeping our own", e);
+            return;
+        }
+        rules.client = Crossblades.settings().client;
+        Crossblades.applySettings(rules);
+        usingServerRules = true;
+    }
+
     public static void onFeedback(FeedbackPayload payload) {
         int percent = payload.percent();
         switch (payload.kind()) {
@@ -267,7 +302,16 @@ public final class CombatClient {
         feedbackUntil = clientTicks + ticks;
     }
 
-    /** Called when leaving a world or server. */
+    /** Called when leaving a world or server: go back to our own settings. */
+    public static void onDisconnect() {
+        if (usingServerRules) {
+            usingServerRules = false;
+            Crossblades.applySettings(Crossblades.loadSettingsFile());
+        }
+        resetConnectionState();
+    }
+
+    /** Forget everything about the current fight (also runs every tick while not in a world). */
     public static void resetConnectionState() {
         FLICKS.reset();
         sentGuardHeld = false;

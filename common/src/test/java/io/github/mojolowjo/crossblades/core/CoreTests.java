@@ -20,6 +20,7 @@ public final class CoreTests {
         fighterFlow();
         rules();
         settingsSanitize();
+        settingsEditor();
 
         System.out.println(passed + " checks passed, " + failures.size() + " failed");
         for (String failure : failures) {
@@ -81,7 +82,7 @@ public final class CoreTests {
 
     private static void flicks() {
         FlickDetector f = new FlickDetector();
-        f.configure(new CombatSettings().client); // 15 degrees within 100ms (2 ticks)
+        f.configure(new CombatSettings().flick); // 15 degrees within 100ms (2 ticks)
         f.update(0, 0);
         boolean any = false;
         float yaw = 0;
@@ -303,6 +304,75 @@ public final class CoreTests {
         check(s.blockTiers.get(0).underMs == 100 && s.blockTiers.get(0).damageTaken == 0, "tiers are sorted and clamped");
         check(s.poke != null && s.poke.windupMs == 350, "a missing attack gets defaults");
         check(s.client != null, "a missing client section gets defaults");
+        s.flick = null;
+        s.sanitize();
+        check(s.flick != null && s.flick.thresholdDegrees == 15, "a missing flick section gets defaults");
+        s.overhead.windupMs = 5;
+        s.parryWindowMs = 1_000_000;
+        s.sanitize();
+        check(s.overhead.windupMs == 50 && s.parryWindowMs == 10_000, "times are kept between their limits");
         check(CombatSettings.ticks(100) == 2 && CombatSettings.ticks(10) == 1 && CombatSettings.ticks(475) == 10, "ms to ticks rounding");
+    }
+
+    private static void settingsEditor() {
+        CombatSettings s = new CombatSettings();
+        List<String> keys = SettingsEditor.keys(s);
+        check(keys.contains("overhead.windupMs") && keys.contains("parryWindowMs")
+                && keys.contains("flick.thresholdDegrees") && keys.contains("blockTiers.0.damageTaken"),
+                "setting names cover sections, top-level values, flicks and tiers (" + keys + ")");
+        check(keys.stream().noneMatch(k -> k.startsWith("client")), "the personal client section is not listed");
+        check(keys.indexOf("overhead.windupMs") < keys.indexOf("parryWindowMs"), "names are in file order");
+
+        check(SettingsEditor.get(s, "slash.windupMs").equals("450"), "read an int");
+        check(SettingsEditor.get(s, "flick.thresholdDegrees").equals("15"), "a whole double reads without .0");
+        check(SettingsEditor.get(s, "blockTiers.1.damageTaken").equals("0.2"), "read a tier");
+        check(SettingsEditor.get(s, "hitsInterruptWindups").equals("true"), "read a boolean");
+        check(SettingsEditor.canonical(s, "FLICK.thresholddegrees").equals("flick.thresholdDegrees"), "names ignore case");
+
+        SettingsEditor.set(s, "flick.thresholdDegrees", "11");
+        check(s.flick.thresholdDegrees == 11, "set a double");
+        SettingsEditor.set(s, "parryWindowMs", "150ms");
+        check(s.parryWindowMs == 150, "set an int with a unit");
+        SettingsEditor.set(s, "blockTiers.1.damageTaken", "25%");
+        check(s.blockTiers.get(1).damageTaken == 0.25, "percent means a share");
+        SettingsEditor.set(s, "hitsInterruptWindups", "off");
+        check(!s.hitsInterruptWindups, "set a boolean with off");
+        SettingsEditor.set(s, "overhead.windupMs", "700.0");
+        check(s.overhead.windupMs == 700, "a whole number written with .0 is fine for an int");
+
+        check(fails(() -> SettingsEditor.set(s, "overhead.windupMs", "650.5")), "a fraction is refused for an int");
+        check(fails(() -> SettingsEditor.set(s, "reach", "3")), "an unknown name is refused");
+        check(fails(() -> SettingsEditor.set(s, "overhead", "3")), "a section is not a setting");
+        check(fails(() -> SettingsEditor.set(s, "blockTiers.9.underMs", "3")), "a missing tier is refused");
+        check(fails(() -> SettingsEditor.set(s, "client.showDirectionArrow", "false")), "the client section can't be set");
+        check(fails(() -> SettingsEditor.set(s, "flick.thresholdDegrees", "fast")), "text is not a number");
+        check(fails(() -> SettingsEditor.set(s, "flick.thresholdDegrees", "NaN")), "NaN is refused");
+        check(fails(() -> SettingsEditor.set(s, "hitsInterruptWindups", "maybe")), "a boolean needs true or false");
+        check(s.flick.thresholdDegrees == 11 && s.overhead.windupMs == 700, "refused changes leave values alone");
+
+        CombatSettings copy = SettingsEditor.copy(s);
+        copy.flick.thresholdDegrees = 30;
+        copy.blockTiers.get(0).underMs = 999;
+        copy.poke.reach = 5;
+        check(s.flick.thresholdDegrees == 11 && s.blockTiers.get(0).underMs == 100 && s.poke.reach == 3.6,
+                "a copy is fully separate from the original");
+        check(copy.client != s.client && copy.client.showDirectionArrow == s.client.showDirectionArrow, "the copy includes the client section");
+        check(SettingsEditor.keys(copy).equals(SettingsEditor.keys(s)), "a copy has the same settings");
+
+        check(SettingsEditor.describe("flick.thresholdDegrees").startsWith("Flicks: "), "descriptions name the section");
+        for (String key : keys) {
+            check(!SettingsEditor.describe(key).isEmpty(), "every setting has a description: " + key);
+        }
+        check(SettingsEditor.unit("parryWindowMs").equals("ms") && SettingsEditor.unit("blockConeDegrees").equals("°")
+                && SettingsEditor.unit("reach").isEmpty(), "units");
+    }
+
+    private static boolean fails(Runnable action) {
+        try {
+            action.run();
+            return false;
+        } catch (IllegalArgumentException e) {
+            return true;
+        }
     }
 }
