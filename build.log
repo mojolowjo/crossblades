@@ -1,0 +1,105 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :build-logic:extractPluginRequests
+> Task :build-logic:generatePluginAdapters
+> Task :build-logic:compileJava
+> Task :build-logic:compileGroovy NO-SOURCE
+> Task :build-logic:compileGroovyPlugins
+> Task :build-logic:pluginDescriptors
+> Task :build-logic:processResources
+> Task :build-logic:classes
+> Task :build-logic:jar
+
+> Configure project :common
+Creating Minecraft artifacts without recompilation.
+
+> Configure project :fabric
+Fabric Loom: 1.15.5
+
+> Configure project :neoforge
+Creating Minecraft artifacts without recompilation.
+
+> Task :common:createMinecraftArtifacts
+Loaded 104 artifacts from /home/runner/work/crossblades/crossblades/common/build/tmp/createMinecraftArtifacts/nfrt_artifact_manifest.properties
+[1m*** Started working on [4mdownloadManifest[0m[0m
+  ↓ https://launchermeta.mojang.com/mc/game/version_manifest_v2.json
+ [1m[92m✓[0m Completed [4mdownloadManifest[0m in 0.45s
+[1m*** Started working on [4mdownloadJson[0m[0m
+ [1m[92m✓[0m Completed [4mdownloadJson[0m in 0.00s
+[1m*** Started working on [4mdownloadServer[0m[0m
+[1m*** Started working on [4mdownloadClient[0m[0m
+ [1m[92m✓[0m Completed [4mdownloadServer[0m in 0.04s
+ [1m[92m✓[0m Completed [4mdownloadClient[0m in 0.04s
+[1m*** Started working on [4mpreProcessJar[0m[0m
+ [1m[92m♻[0m Used cache of [4mpreProcessJar[0m in 0.00s
+Total runtime: 1.02s
+
+
+> Task :common:compileJava
+> Task :common:processResources
+> Task :common:classes
+> Task :common:jarJar NO-SOURCE
+> Task :common:jar
+> Task :common:sourcesJar
+> Task :common:assemble
+> Task :common:compileTestJava
+> Task :common:processTestResources NO-SOURCE
+> Task :common:testClasses
+> Task :common:test
+> Task :common:check
+> Task :common:build
+> Task :fabric:compileJava
+> Task :fabric:processResources
+> Task :fabric:classes
+> Task :fabric:processIncludeJars
+> Task :fabric:sourcesJar
+> Task :fabric:compileTestJava NO-SOURCE
+> Task :fabric:jar
+> Task :fabric:assemble
+> Task :fabric:processTestResources NO-SOURCE
+> Task :fabric:testClasses UP-TO-DATE
+> Task :fabric:test NO-SOURCE
+> Task :fabric:validateAccessWidener NO-SOURCE
+> Task :fabric:check UP-TO-DATE
+> Task :fabric:build
+
+> Task :neoforge:createMinecraftArtifacts
+Loaded 127 artifacts from /home/runner/work/crossblades/crossblades/neoforge/build/tmp/createMinecraftArtifacts/nfrt_artifact_manifest.properties
+[1m*** Started working on [4mdownloadManifest[0m[0m
+  ↓ https://launchermeta.mojang.com/mc/game/version_manifest_v2.json
+ [1m[92m✓[0m Completed [4mdownloadManifest[0m in 0.37s
+[1m*** Started working on [4mdownloadJson[0m[0m
+ [1m[92m✓[0m Completed [4mdownloadJson[0m in 0.00s
+[1m*** Started working on [4mdownloadServer[0m[0m
+[1m*** Started working on [4mdownloadClient[0m[0m
+ [1m[92m✓[0m Completed [4mdownloadServer[0m in 0.04s
+ [1m[92m✓[0m Completed [4mdownloadClient[0m in 0.04s
+[1m*** Started working on [4mpreProcessJar[0m[0m
+ [1m[92m♻[0m Used cache of [4mpreProcessJar[0m in 0.00s
+[1m*** Started working on [4mbinaryPatch[0m[0m
+ [1m[92m♻[0m Used cache of [4mbinaryPatch[0m in 0.00s
+[1m*** Started working on [4mcopyUnpatchedClasses[0m[0m
+ [1m[92m♻[0m Used cache of [4mcopyUnpatchedClasses[0m in 0.00s
+[1m*** Started working on [4mapplyDevTransforms[0m[0m
+ [1m[92m♻[0m Used cache of [4mapplyDevTransforms[0m in 0.00s
+Total runtime: 1.02s
+
+
+> Task :neoforge:compileJava
+> Task :neoforge:processResources
+> Task :neoforge:classes
+> Task :neoforge:jarJar NO-SOURCE
+> Task :neoforge:jar
+> Task :neoforge:sourcesJar
+> Task :neoforge:assemble
+> Task :neoforge:compileTestJava NO-SOURCE
+> Task :neoforge:processTestResources NO-SOURCE
+> Task :neoforge:testClasses UP-TO-DATE
+> Task :neoforge:test NO-SOURCE
+> Task :neoforge:check UP-TO-DATE
+> Task :neoforge:build
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1790560237180.json
+
+BUILD SUCCESSFUL in 29s
+24 actionable tasks: 24 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.0/userguide/configuration_cache_enabling.html
